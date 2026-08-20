@@ -134,7 +134,6 @@
         <label>채널</label>
         <div class="tabgroup" id="channelTabs">
           <div class="tab active" data-val="뉴헤어">김진오의 뉴헤어</div>
-          <div class="tab" data-val="모벤저스">모벤져스</div>
         </div>
       </div>
       <div>
@@ -286,6 +285,12 @@ function buildDescription(){
 
   if(refText){ lines.push(""); lines.push(refText); }
 
+  const inlineHtEl = document.getElementById("hashtagsInline");
+  if(inlineHtEl){
+    const inlineHt = inlineHtEl.value.trim();
+    if(inlineHt){ lines.push(""); lines.push(inlineHt); }
+  }
+
   return lines.join("\n");
 }
 
@@ -315,6 +320,7 @@ function renderResults(data){
   html += `<ol class="titles">` + (data.titles||[]).map(t=>`<li>${escapeHtml(t)}</li>`).join("") + `</ol></div>`;
 
   // 썸네일 / 영상내제목
+  let otText = "";
   if(isLong){
     html += `<div class="resultCard"><div class="resultHead"><h3>썸네일 추천</h3></div>`;
     html += (data.thumbnails||[]).map(t=>`
@@ -325,9 +331,13 @@ function renderResults(data){
       </div>`).join("");
     html += `</div>`;
   } else {
-    const otText = (data.onscreen_titles||[]).map((t,i)=>`${i+1}. ${t}`).join("\n");
+    otText = (data.onscreen_titles||[]).join("\n\n");
     html += `<div class="resultCard"><div class="resultHead"><h3>영상 내 제목 추천</h3><button class="copyBtn" id="copyOnscreen">복사</button></div>`;
-    html += `<ol class="titles">` + (data.onscreen_titles||[]).map(t=>`<li>${escapeHtml(t)}</li>`).join("") + `</ol></div>`;
+    html += (data.onscreen_titles||[]).map(t=>`
+      <div class="thumbCard">
+        <div class="headline" style="white-space:pre-line;line-height:1.4;">${escapeHtml(t)}</div>
+      </div>`).join("");
+    html += `</div>`;
   }
 
   // 자동 검색 결과 + 설명글
@@ -365,21 +375,36 @@ function renderResults(data){
       <textarea id="refText" style="min-height:60px;font-size:12px;">${escapeHtml(data.references.text||"")}</textarea>
     </div>
 
+    ${!isLong ? `
+    <div class="autoField">
+      <div class="label">해시태그 (설명글 끝에 포함, 5~10개)</div>
+      <textarea id="hashtagsInline" style="min-height:50px;font-size:12px;">${escapeHtml((data.hashtags_inline||[]).join(" "))}</textarea>
+    </div>` : ""}
+
     <div class="resultHead" style="margin-top:14px;"><h3>최종 설명글 미리보기</h3><button class="copyBtn" id="copyDesc">복사</button></div>
     <pre class="desc" id="descPreview"></pre>
   </div>`;
+
+  // 해시태그 30개 (별도 리스트, 롱폼/숏츠 공통)
+  const ht30Text = (data.hashtags_30||[]).join(" ");
+  html += `<div class="resultCard"><div class="resultHead"><h3>해시태그 30개</h3><button class="copyBtn" id="copyHt30">복사</button></div>`;
+  html += `<pre class="desc">${escapeHtml(ht30Text)}</pre></div>`;
 
   resultsBox.innerHTML = html;
 
   ["descIntro","vTitle","vUrl","bTitle","bUrl","tagSuffix","refText"].forEach(id=>{
     document.getElementById(id).addEventListener("input", refreshDescPreview);
   });
+  const inlineHtEl = document.getElementById("hashtagsInline");
+  if(inlineHtEl) inlineHtEl.addEventListener("input", refreshDescPreview);
   refreshDescPreview();
 
   const titlesEl = document.getElementById("copyTitles");
   if(titlesEl) titlesEl.addEventListener("click", ()=>copyText(titlesEl, titlesText));
   const otEl = document.getElementById("copyOnscreen");
-  if(otEl) otEl.addEventListener("click", ()=>copyText(otEl, (data.onscreen_titles||[]).map((t,i)=>`${i+1}. ${t}`).join("\n")));
+  if(otEl) otEl.addEventListener("click", ()=>copyText(otEl, otText));
+  const ht30El = document.getElementById("copyHt30");
+  if(ht30El) ht30El.addEventListener("click", ()=>copyText(ht30El, ht30Text));
   document.getElementById("copyDesc").addEventListener("click", (e)=>copyText(e.target, buildDescription()));
 }
 

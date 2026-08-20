@@ -44,7 +44,7 @@ async function claudeAnalyze(apiKey, channel, contentType, script) {
 
   if (isLong) {
     schemaFields += `
-- "thumbnails": [{"category":"모발이식 정보|탈모치료 정보|탈모 팩트체크 중 하나","headline":"썸네일 메인 카피(굵고 짧게, 10자 내외)","sub":"보조 문구(선택, 없으면 빈 문자열)"}] (3개)`;
+- "thumbnails": [{"category":"모발이식 정보|탈모치료 정보|탈모 팩트체크 중 하나","headline":"썸네일 메인 카피(굵고 임팩트 있게, 15~20자 내외로 조금 길게)","sub":"보조 문구(선택, 없으면 빈 문자열)"}] (3개)`;
   } else {
     schemaFields += `
 - "onscreen_titles": ["줄1\\n줄2", ...] (영상 내 삽입할 두 줄짜리 후크 문구 3~5개. 각 줄은 8~12자 내외로 짧고 임팩트 있게. 예: "수술 날짜부터 잡으면\\n일단 의심하세요")
@@ -58,7 +58,7 @@ async function claudeAnalyze(apiKey, channel, contentType, script) {
 아래 JSON 스키마로만 응답하세요. 마크다운, 코드블록, 설명 문장 없이 순수 JSON 객체 하나만 출력합니다.
 ${schemaFields}
 
-제목 스타일은 정보성 채널 톤(예: "탈모 정기검사의 중요성!", "탈모 자가진단법 총정리")을 따르고 과도한 낚시성 문구는 피합니다.
+제목 스타일은 궁금증을 자극하는 후킹 문구, 숫자·경고·긴급성 표현을 적극 활용해 클릭을 유도하는 자극적인 톤으로 작성하되(예: "이거 모르면 대머리 됩니다", "탈모 진짜 골든타임은 따로 있습니다"), 대본 내용과 무관한 허위·과장은 넣지 않습니다.
 설명글 도입부와 검색 키워드는 대본에 실제로 나온 내용에 근거해야 하며 지어내지 않습니다.`;
 
   const res = await fetch("https://api.anthropic.com/v1/messages", {

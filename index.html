@@ -664,7 +664,14 @@ function renderResults(data){
     }
 
     if(isDemoMode){
-      statusEl.textContent = "🧪 데모 모드에서는 기록이 저장되지 않아요 (실제 생성 후 저장해주세요).";
+      const demoRecord = {
+        ...record,
+        id: "demo" + Date.now(),
+        date: todayISODateForLog(),
+        createdAt: new Date().toISOString()
+      };
+      demoLogRecords.unshift(demoRecord);
+      statusEl.textContent = "🧪 데모 저장됨 (실제로는 저장되지 않아요) — 아래 '날짜별 기록 보기'에서 확인 가능";
       return;
     }
 
@@ -835,8 +842,20 @@ function renderLogList(records){
   }).join("");
 }
 
+let demoLogRecords = [];
+function todayISODateForLog(){
+  return new Date().toLocaleDateString("sv-SE", { timeZone: "Asia/Seoul" });
+}
+
 async function loadLog(){
   const statusEl = document.getElementById("logViewStatus");
+
+  if(isDemoMode){
+    statusEl.textContent = demoLogRecords.length ? "🧪 데모 기록입니다 (실제 저장소와는 별개)." : "";
+    renderLogList(demoLogRecords);
+    return;
+  }
+
   statusEl.textContent = "불러오는 중...";
   try{
     const res = await fetch("/.netlify/functions/log");

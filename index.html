@@ -33,7 +33,7 @@
   .layout{display:grid;grid-template-columns:1fr;gap:20px;align-items:start;}
   @media (min-width:900px){
     .layout{grid-template-columns:420px 1fr;}
-    .col-left{position:sticky;top:20px;}
+    .col-right{position:sticky;top:20px;}
   }
   #resultsEmpty{display:flex;align-items:center;justify-content:center;min-height:200px;}
 
@@ -267,10 +267,12 @@
       <div id="errBox"></div>
       <div id="loadingBox"></div>
 
+      <div id="results"></div>
+
     </div>
 
     <div class="col-right">
-      <div id="results"></div>
+      <div id="resultsCopy"></div>
       <div id="resultsEmpty" class="card" style="text-align:center;color:var(--muted);font-size:13px;">
         왼쪽에서 스크립트를 넣고 생성하면 결과가 여기에 나와요
       </div>
@@ -546,19 +548,24 @@ function renderResults(data){
       <div class="label">해시태그 (설명글 끝에 포함, 5~10개)</div>
       <textarea id="hashtagsInline" style="min-height:50px;font-size:12px;">${escapeHtml((data.hashtags_inline||[]).join(" "))}</textarea>
     </div>` : ""}
+  </div>`;
 
-    <div class="resultHead" style="margin-top:14px;"><h3>설명글 (복붙용)</h3><button class="copyBtn" id="copyDesc">복사</button></div>
+  // ---- 여기서부터는 오른쪽(복붙용 결과) 컬럼 ----
+  let htmlRight = "";
+
+  htmlRight += `<div class="resultCard">
+    <div class="resultHead"><h3>설명글 (복붙용)</h3><button class="copyBtn" id="copyDesc">복사</button></div>
     <pre class="desc" id="descPreview"></pre>
   </div>`;
 
   // 해시태그 30개 (별도 리스트, 롱폼/숏츠 공통 — 설명글에는 안 들어감, 참고용)
   const ht30Text = (data.hashtags_30||[]).join(" ");
-  html += `<details class="resultCard"><summary><h3>해시태그 30개</h3></summary><div class="acc-body">`;
-  html += `<div style="text-align:right;margin-bottom:8px;"><button type="button" class="copyBtn" id="copyHt30">복사</button></div>`;
-  html += `<pre class="desc">${escapeHtml(ht30Text)}</pre></div></details>`;
+  htmlRight += `<details class="resultCard"><summary><h3>해시태그 30개</h3></summary><div class="acc-body">`;
+  htmlRight += `<div style="text-align:right;margin-bottom:8px;"><button type="button" class="copyBtn" id="copyHt30">복사</button></div>`;
+  htmlRight += `<pre class="desc">${escapeHtml(ht30Text)}</pre></div></details>`;
 
   // 번역 (영어/일본어) — YouTube Studio 언어 탭용
-  html += `<details class="resultCard">
+  htmlRight += `<details class="resultCard">
     <summary><h3>번역 (YouTube 언어 탭용)</h3></summary>
     <div class="acc-body">
     <div class="row">
@@ -592,6 +599,7 @@ function renderResults(data){
   </details>`;
 
   resultsBox.innerHTML = html;
+  document.getElementById("resultsCopy").innerHTML = htmlRight;
 
   ["descIntro","vTitle","vUrl","bTitle","bUrl","aTitle","aUrl","tagSuffix","refText"].forEach(id=>{
     document.getElementById(id).addEventListener("input", refreshDescPreview);

@@ -263,6 +263,57 @@
         </div>
       </details>
 
+      <details class="card">
+        <summary><h2><span class="n">A</span>업로드 완료 공지 <span style="color:var(--muted);font-weight:400;text-transform:none;font-size:11.5px;">(선택 — 날짜 자동, 제목·링크는 직접 입력)</span></h2></summary>
+        <div class="acc-body">
+        <label>머리말 문구</label>
+        <input type="text" id="annHeader" value="업로드 예약 완입니다!">
+
+        <div style="height:10px;"></div>
+        <label>본영상</label>
+        <div class="row" style="margin-bottom:6px;">
+          <div style="max-width:140px;"><input type="date" class="annDate" id="annMainDate"></div>
+          <div><input type="text" id="annMainTitle" placeholder="제목"></div>
+        </div>
+        <input type="url" id="annMainUrl" placeholder="https://youtu.be/...">
+
+        <div style="height:10px;"></div>
+        <label>하이라이트 쇼츠</label>
+        <div id="annShortsRows"></div>
+        <button type="button" class="fileBtn" id="annAddShortRow">+ 쇼츠 추가</button>
+
+        <div style="margin-top:10px;">
+          <label style="display:flex;align-items:center;gap:6px;font-weight:400;"><input type="checkbox" id="annIncludeTitle" checked style="width:auto;"> 제목 텍스트 포함</label>
+        </div>
+
+        <button type="button" class="fileBtn" id="annGenerateBtn" style="margin-top:8px;">📨 메시지 생성</button>
+        <div class="hint" id="annStatus"></div>
+        <div id="annResultBox" style="display:none;margin-top:10px;">
+          <div class="resultHead" style="margin-bottom:8px;"><h3 style="color:var(--red-dark);">공지 메시지</h3><button type="button" class="copyBtn" id="copyAnn">복사</button></div>
+          <pre class="desc" id="annPreview"></pre>
+        </div>
+        </div>
+      </details>
+
+      <details class="card">
+        <summary><h2><span class="n">B</span>업로드 예정 공지 <span style="color:var(--muted);font-weight:400;text-transform:none;font-size:11.5px;">(선택 — 데일리/시의성 쇼츠, 링크 전)</span></h2></summary>
+        <div class="acc-body">
+        <label>멘션할 사람 (선택)</label>
+        <input type="text" id="preMention" placeholder="@정혜진">
+
+        <div style="height:10px;"></div>
+        <label>예정 목록</label>
+        <div id="preRows"></div>
+        <button type="button" class="fileBtn" id="preAddRow">+ 항목 추가</button>
+
+        <button type="button" class="fileBtn" id="preGenerateBtn" style="margin-top:8px;">📨 메시지 생성</button>
+        <div id="preResultBox" style="display:none;margin-top:10px;">
+          <div class="resultHead" style="margin-bottom:8px;"><h3 style="color:var(--red-dark);">공지 메시지</h3><button type="button" class="copyBtn" id="copyPre">복사</button></div>
+          <pre class="desc" id="prePreview"></pre>
+        </div>
+        </div>
+      </details>
+
       <button class="genBtn" id="genBtn">🎬 생성하기 (오타체크·제목·썸네일·설명글 자동)</button>
       <button class="genBtn" id="demoBtn" style="margin-top:8px;background:linear-gradient(135deg,#00d488,#00b86c);box-shadow:0 5px 0 #007a48;">🧪 데모로 화면만 미리보기 (API 사용 안 함)</button>
       <div id="errBox"></div>
@@ -855,6 +906,136 @@ async function loadLog(){
 document.getElementById("refreshLogBtn").addEventListener("click", loadLog);
 document.getElementById("logViewerAcc").addEventListener("toggle", function(){
   if(this.open) loadLog();
+});
+
+// ---- A. 업로드 완료 공지 (본영상+하이라이트, 직접 입력 + 날짜는 달력에서 선택) ----
+function todayISODate(){
+  const fmt = new Intl.DateTimeFormat("sv-SE", { timeZone: "Asia/Seoul" });
+  return fmt.format(new Date()); // YYYY-MM-DD
+}
+
+function isoToKoreanDate(isoStr){
+  if(!isoStr) return "";
+  const [y, m, d] = isoStr.split("-").map(Number);
+  const weekdays = ["일","월","화","수","목","금","토"];
+  const dt = new Date(Date.UTC(y, m - 1, d));
+  const wd = weekdays[dt.getUTCDay()];
+  const yy = String(y).slice(2);
+  const mm = String(m).padStart(2, "0");
+  const dd = String(d).padStart(2, "0");
+  return `${yy}.${mm}.${dd} (${wd})`;
+}
+
+function addAnnShortRow(){
+  const div = document.createElement("div");
+  div.style.cssText = "margin-bottom:10px;padding:10px;border:1px solid var(--line);border-radius:10px;background:var(--panel-2);";
+  div.innerHTML = `
+    <div class="row" style="margin-bottom:6px;">
+      <div style="max-width:140px;"><input type="date" class="annShortDate" value="${todayISODate()}"></div>
+      <div><input type="text" class="annShortTitle" placeholder="제목"></div>
+      <button type="button" class="iconbtn" onclick="this.closest('div[style*=padding]').remove()">✕</button>
+    </div>
+    <input type="url" class="annShortUrl" placeholder="https://youtube.com/shorts/...">
+  `;
+  document.getElementById("annShortsRows").appendChild(div);
+}
+document.getElementById("annAddShortRow").addEventListener("click", addAnnShortRow);
+document.getElementById("annMainDate").value = todayISODate();
+addAnnShortRow();
+
+document.getElementById("annGenerateBtn").addEventListener("click", ()=>{
+  const statusEl = document.getElementById("annStatus");
+  const resultBox = document.getElementById("annResultBox");
+  const header = document.getElementById("annHeader").value.trim();
+  const includeTitle = document.getElementById("annIncludeTitle").checked;
+
+  const mainDate = isoToKoreanDate(document.getElementById("annMainDate").value);
+  const mainTitle = document.getElementById("annMainTitle").value.trim();
+  const mainUrl = document.getElementById("annMainUrl").value.trim();
+
+  const shortRows = Array.from(document.querySelectorAll("#annShortsRows > div"));
+  const shorts = shortRows.map(row => ({
+    date: isoToKoreanDate(row.querySelector(".annShortDate").value),
+    title: row.querySelector(".annShortTitle").value.trim(),
+    url: row.querySelector(".annShortUrl").value.trim()
+  })).filter(s => s.date || s.title || s.url);
+
+  if(!mainUrl && shorts.length === 0){
+    statusEl.textContent = "본영상이나 쇼츠를 하나 이상 입력해주세요.";
+    resultBox.style.display = "none";
+    return;
+  }
+
+  const lines = [];
+  if(header) lines.push(header, "");
+
+  if(mainUrl){
+    lines.push("본영상", mainDate || "(날짜 미입력)");
+    if(includeTitle) lines.push(mainTitle || "(제목 미입력)");
+    lines.push(mainUrl, "");
+  }
+
+  if(shorts.length){
+    lines.push("하이라이트 쇼츠");
+    shorts.forEach((s, i) => {
+      lines.push(s.date || "(날짜 미입력)");
+      if(includeTitle) lines.push(s.title || "(제목 미입력)");
+      lines.push(s.url || "(링크 미입력)");
+      if(i < shorts.length - 1) lines.push("");
+    });
+  }
+
+  const msg = lines.join("\n").trim();
+  document.getElementById("annPreview").textContent = msg;
+  resultBox.style.display = "block";
+  statusEl.textContent = "완료. 확인 후 복사해서 보내줘.";
+  document.getElementById("copyAnn").onclick = (e)=>copyText(e.target, msg);
+});
+
+// ---- B. 업로드 예정 공지 (링크 없이 날짜/제목/태그 수동 입력) ----
+function addPreRow(){
+  const div = document.createElement("div");
+  div.className = "row";
+  div.style.cssText = "margin-bottom:8px;align-items:flex-end;";
+  div.innerHTML = `
+    <div style="max-width:130px;"><label>날짜</label><input type="text" class="preDate" placeholder="26.08.19 (수)"></div>
+    <div><label>제목</label><input type="text" class="preTitle" placeholder="영상 제목"></div>
+    <div style="max-width:110px;"><label>구분</label>
+      <select class="preTag">
+        <option value="데일리숏">데일리숏</option>
+        <option value="시의성숏">시의성숏</option>
+      </select>
+    </div>
+    <button type="button" class="iconbtn" onclick="this.parentElement.remove()">✕</button>
+  `;
+  document.getElementById("preRows").appendChild(div);
+}
+document.getElementById("preAddRow").addEventListener("click", addPreRow);
+addPreRow();
+addPreRow();
+
+document.getElementById("preGenerateBtn").addEventListener("click", ()=>{
+  const mention = document.getElementById("preMention").value.trim();
+  const rows = Array.from(document.querySelectorAll("#preRows .row"));
+  const items = rows.map(r => ({
+    date: r.querySelector(".preDate").value.trim(),
+    title: r.querySelector(".preTitle").value.trim(),
+    tag: r.querySelector(".preTag").value
+  })).filter(it => it.date && it.title);
+
+  if(items.length === 0){
+    document.getElementById("preResultBox").style.display = "none";
+    return;
+  }
+
+  const tagsUsed = [...new Set(items.map(it=>it.tag.replace("숏","")))].join("/");
+  const lines = [`업로드 예정 쇼츠입니다! (${tagsUsed})${mention ? " " + mention : ""}`];
+  items.forEach(it => lines.push(`${it.date} ${it.title} - ${it.tag}`));
+
+  const msg = lines.join("\n");
+  document.getElementById("prePreview").textContent = msg;
+  document.getElementById("preResultBox").style.display = "block";
+  document.getElementById("copyPre").onclick = (e)=>copyText(e.target, msg);
 });
 
 // ---- SRT 자막 변환 ----

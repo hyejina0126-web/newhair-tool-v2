@@ -46,7 +46,7 @@ async function claudeAnalyze(apiKey, channel, contentType, script) {
 
   if (isLong) {
     schemaFields += `
-- "thumbnails": [{"category":"모발이식 정보|탈모치료 정보|탈모 팩트체크 중 하나","headline":"썸네일 메인 카피(굵고 임팩트 있게, 15~20자 내외로 조금 길게)","sub":"보조 문구(선택, 없으면 빈 문자열)"}] (3개)`;
+- "thumbnails": [{"category":"모발이식 정보|탈모치료 정보|탈모 팩트체크 중 하나","headline":"썸네일 메인 카피(굵고 임팩트 있게, 15~20자 내외로 조금 길게)","emphasis":["headline 안에 그대로 등장하는 단어 1~2개, 색을 다르게 강조할 핵심 단어만"],"sub":"보조 문구(선택, 없으면 빈 문자열)"}] (3개)`;
   } else {
     schemaFields += `
 - "onscreen_titles": ["줄1\\n줄2", ...] (영상 내 삽입할 두 줄짜리 후크 문구 3~5개. 각 줄은 8~12자 내외로 짧고 임팩트 있게. 예: "수술 날짜부터 잡으면\\n일단 의심하세요")

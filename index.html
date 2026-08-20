@@ -135,6 +135,7 @@
   .thumbCard{border:1.5px solid var(--line);border-radius:16px;padding:12px 16px;margin-bottom:10px;background:var(--panel-2);}
   .thumbCard .cat{display:inline-block;background:linear-gradient(135deg,var(--yellow),#ffc400);color:#3a2c00;font-size:11px;font-weight:800;padding:3px 10px;border-radius:999px;margin-bottom:6px;}
   .thumbCard .headline{font-weight:800;font-size:15px;line-height:1.45;color:var(--ink);}
+  .thumbCard .headline .hl{color:var(--red);}
   .thumbCard .sub{color:var(--ink);font-weight:400;font-size:15px;margin-top:2px;line-height:1.45;}
 
   pre.desc{white-space:pre-wrap;word-break:break-word;font-family:inherit;font-size:13.5px;background:var(--panel-2);border:1.5px solid var(--line);border-radius:14px;padding:14px;margin:0;}
@@ -197,13 +198,15 @@
     <h2><span class="n">S</span>SRT 자막 변환 <span style="color:var(--muted);font-weight:400;text-transform:none;font-size:11.5px;">(선택 — 위 스크립트의 타임코드를 표준 SRT 파일로)</span></h2>
     <div class="row">
       <div>
-        <label>프레임레이트 (타임코드가 00:00:00:00 형식일 때만 사용)</label>
+        <label>프레임레이트 (변환 시 자동 추정 — 틀리면 직접 선택 후 재변환)</label>
         <select id="srtFps">
           <option value="24">24fps</option>
           <option value="23.976">23.976fps</option>
           <option value="25">25fps</option>
           <option value="29.97">29.97fps</option>
-          <option value="30" selected>30fps</option>
+          <option value="30">30fps</option>
+          <option value="59.94">59.94fps</option>
+          <option value="60" selected>60fps</option>
         </select>
       </div>
     </div>
@@ -234,6 +237,7 @@
 let channel = "뉴헤어";
 let contentType = "롱폼";
 let lastAnalysis = null;
+let isDemoMode = false;
 
 function setupTabs(groupId, onChange){
   const group = document.getElementById(groupId);
@@ -304,6 +308,7 @@ async function callGenerate(payload){
 }
 
 async function generate(){
+  isDemoMode = false;
   const errBox = document.getElementById("errBox");
   const loadingBox = document.getElementById("loadingBox");
   const resultsBox = document.getElementById("results");
@@ -362,6 +367,20 @@ function buildDescription(){
   return lines.join("\n");
 }
 
+function highlightWords(text, emphasisWords){
+  let escaped = escapeHtml(text || "");
+  if(!emphasisWords || !emphasisWords.length) return escaped;
+  const sorted = [...emphasisWords].filter(Boolean).sort((a,b)=>b.length-a.length);
+  for(const w of sorted){
+    const esc = escapeHtml(w);
+    if(!esc) continue;
+    const idx = escaped.indexOf(esc);
+    if(idx === -1) continue;
+    escaped = escaped.slice(0, idx) + `<span class="hl">${esc}</span>` + escaped.slice(idx + esc.length);
+  }
+  return escaped;
+}
+
 function linkifyHtml(text){
   const escaped = escapeHtml(text);
   return escaped.replace(/(https?:\/\/[^\s<]+)/g, url => `<a href="${url}" target="_blank" rel="noopener" style="color:var(--teal);text-decoration:underline;">${url}</a>`);
@@ -399,7 +418,7 @@ function renderResults(data){
     html += (data.thumbnails||[]).map(t=>`
       <div class="thumbCard">
         <span class="cat">${escapeHtml(t.category)}</span>
-        <div class="headline">${escapeHtml(t.headline)}</div>
+        <div class="headline">${highlightWords(t.headline, t.emphasis)}</div>
         ${t.sub? `<div class="sub">${escapeHtml(t.sub)}</div>`:""}
       </div>`).join("");
     html += `</div>`;
@@ -487,6 +506,38 @@ function renderResults(data){
   html += `<div class="resultCard"><div class="resultHead"><h3>해시태그 30개</h3><button class="copyBtn" id="copyHt30">복사</button></div>`;
   html += `<pre class="desc">${escapeHtml(ht30Text)}</pre></div>`;
 
+  // 번역 (영어/일본어) — YouTube Studio 언어 탭용
+  html += `<div class="resultCard">
+    <div class="resultHead"><h3>번역 (YouTube 언어 탭용)</h3></div>
+    <div class="row">
+      <div>
+        <label>번역할 제목 선택</label>
+        <select id="translateTitleSelect">
+          ${(data.titles||[]).map((t,i)=>`<option value="${i}">${escapeHtml(t)}</option>`).join("")}
+        </select>
+      </div>
+    </div>
+    <div style="display:flex;gap:8px;margin-top:8px;">
+      <button type="button" class="fileBtn" id="translateEnBtn">🇺🇸 영어로 번역</button>
+      <button type="button" class="fileBtn" id="translateJaBtn">🇯🇵 일본어로 번역</button>
+    </div>
+    <div class="hint" id="translateStatus"></div>
+    <div id="translateResultBox" style="display:none;margin-top:10px;">
+      <div class="autoField">
+        <div class="label">번역된 제목</div>
+        <div class="row">
+          <div style="flex:1;"><input type="text" id="translatedTitle" readonly></div>
+          <button type="button" class="copyBtn" id="copyTranslatedTitle">복사</button>
+        </div>
+      </div>
+      <div class="autoField">
+        <div class="label">번역된 설명글</div>
+        <pre class="desc" id="translatedDesc"></pre>
+        <button type="button" class="copyBtn" id="copyTranslatedDesc" style="margin-top:6px;">복사</button>
+      </div>
+    </div>
+  </div>`;
+
   resultsBox.innerHTML = html;
 
   ["descIntro","vTitle","vUrl","bTitle","bUrl","aTitle","aUrl","tagSuffix","refText"].forEach(id=>{
@@ -543,8 +594,72 @@ function renderResults(data){
       fetchABtn.disabled = false;
     }
   });
-}
 
+  async function runTranslate(targetLang){
+    const statusEl = document.getElementById("translateStatus");
+    const resultBox = document.getElementById("translateResultBox");
+    const sel = document.getElementById("translateTitleSelect");
+    const titleIdx = sel ? parseInt(sel.value, 10) : 0;
+    const title = (data.titles||[])[titleIdx] || (data.titles||[])[0] || "";
+    const description = buildDescription();
+
+    if(!title){ statusEl.textContent = "번역할 제목이 없습니다."; return; }
+
+    if(isDemoMode){
+      const demoTranslations = {
+        en: {
+          title: "Why You Need to Check This Right Now If Your Hair Is Thinning",
+          description: "Hair loss doesn't start when you lose a lot of hair.\nThe more important early sign is actually thinning strands.\n(This paragraph is a demo sample — real output is generated from your script.)"
+        },
+        ja: {
+          title: "髪が細くなっているなら今すぐ確認すべき理由",
+          description: "抜け毛は大量に抜け始めてから始まるわけではありません。\nより重要な初期サインは、髪の毛が細くなることです。\n（この段落はデモ用サンプルです — 実際の出力は台本の内容から生成されます）"
+        }
+      };
+      statusEl.textContent = "🧪 데모 번역입니다 — 실제 번역이 아닌 샘플입니다.";
+      const demo = demoTranslations[targetLang];
+      document.getElementById("translatedTitle").value = demo.title;
+      document.getElementById("translatedDesc").textContent = demo.description;
+      resultBox.style.display = "block";
+      document.getElementById("copyTranslatedTitle").onclick = (e) => copyText(e.target, demo.title);
+      document.getElementById("copyTranslatedDesc").onclick = (e) => copyText(e.target, demo.description);
+      return;
+    }
+
+    statusEl.textContent = "번역 중...";
+    document.getElementById("translateEnBtn").disabled = true;
+    document.getElementById("translateJaBtn").disabled = true;
+    try{
+      const res = await fetch("/.netlify/functions/translate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ title, description, targetLang })
+      });
+      const result = await res.json();
+      if(!res.ok || result.error){
+        statusEl.textContent = "번역 실패: " + (result.error || res.status);
+        resultBox.style.display = "none";
+        return;
+      }
+      document.getElementById("translatedTitle").value = result.title;
+      document.getElementById("translatedDesc").textContent = result.description;
+      resultBox.style.display = "block";
+      statusEl.textContent = "번역 완료. 확인 후 YouTube Studio 언어 탭에 붙여넣으세요.";
+      document.getElementById("copyTranslatedTitle").onclick = (e) => copyText(e.target, result.title);
+      document.getElementById("copyTranslatedDesc").onclick = (e) => copyText(e.target, result.description);
+    }catch(e){
+      statusEl.textContent = "요청 실패: " + e.message;
+    }finally{
+      document.getElementById("translateEnBtn").disabled = false;
+      document.getElementById("translateJaBtn").disabled = false;
+    }
+  }
+
+  const translateEnBtn = document.getElementById("translateEnBtn");
+  if(translateEnBtn) translateEnBtn.addEventListener("click", () => runTranslate("en"));
+  const translateJaBtn = document.getElementById("translateJaBtn");
+  if(translateJaBtn) translateJaBtn.addEventListener("click", () => runTranslate("ja"));
+}
 document.getElementById("genBtn").addEventListener("click", generate);
 
 // ---- SRT 자막 변환 ----
@@ -601,9 +716,24 @@ function scriptToSrt(text, fps){
   ).join("\n");
 }
 
+function detectFps(text){
+  const tcRe = /\d{1,2}:\d{2}:\d{2}:(\d{2})/g;
+  let maxFrame = -1;
+  let m;
+  while((m = tcRe.exec(text))){
+    const f = +m[1];
+    if(f > maxFrame) maxFrame = f;
+  }
+  if(maxFrame === -1) return null;
+  if(maxFrame <= 23) return 24;
+  if(maxFrame <= 24) return 25;
+  if(maxFrame <= 29) return 30;
+  return 60;
+}
+
 document.getElementById("convertSrtBtn").addEventListener("click", ()=>{
   const text = document.getElementById("scriptText").value;
-  const fps = parseFloat(document.getElementById("srtFps").value);
+  const fpsSelect = document.getElementById("srtFps");
   const statusEl = document.getElementById("srtStatus");
   const resultBox = document.getElementById("srtResultBox");
 
@@ -613,6 +743,17 @@ document.getElementById("convertSrtBtn").addEventListener("click", ()=>{
     return;
   }
 
+  let detectNote = "";
+  const detected = detectFps(text);
+  if(detected !== null){
+    const hasOption = Array.from(fpsSelect.options).some(o => Math.round(parseFloat(o.value)) === detected);
+    if(hasOption){
+      fpsSelect.value = String(detected);
+      detectNote = `자동 감지: ${detected}fps (프레임 번호 최대값 기준 추정 — 실제와 다르면 위에서 직접 골라 다시 변환해줘)`;
+    }
+  }
+
+  const fps = parseFloat(fpsSelect.value);
   const srt = scriptToSrt(text, fps);
   if(!srt){
     statusEl.textContent = "타임코드 형식(예: 00:00:00:00 - 00:00:01:09)을 찾지 못했습니다. 대본 형식을 확인해주세요.";
@@ -620,7 +761,7 @@ document.getElementById("convertSrtBtn").addEventListener("click", ()=>{
     return;
   }
 
-  statusEl.textContent = "변환 완료.";
+  statusEl.textContent = detectNote || "변환 완료.";
   document.getElementById("srtPreview").textContent = srt;
   resultBox.style.display = "block";
 
@@ -664,9 +805,9 @@ function buildDemoData(){
   };
   if(isLong){
     base.thumbnails = [
-      { category: "탈모치료 정보", headline: "연모화 놓치면 골든타임 끝", sub: "지금 확인 안 하면 늦습니다" },
-      { category: "모발이식 정보", headline: "이식 전 반드시 체크할 4가지", sub: "" },
-      { category: "탈모 팩트체크", headline: "미녹시딜 진짜 효과 있을까", sub: "전문의가 직접 답한다" }
+      { category: "탈모치료 정보", headline: "연모화 놓치면 골든타임 끝", emphasis: ["골든타임"], sub: "지금 확인 안 하면 늦습니다" },
+      { category: "모발이식 정보", headline: "이식 전 반드시 체크할 4가지", emphasis: ["반드시"], sub: "" },
+      { category: "탈모 팩트체크", headline: "미녹시딜 진짜 효과 있을까", emphasis: ["진짜"], sub: "전문의가 직접 답한다" }
     ];
   } else {
     base.onscreen_titles = [
@@ -680,6 +821,7 @@ function buildDemoData(){
 }
 
 document.getElementById("demoBtn").addEventListener("click", ()=>{
+  isDemoMode = true;
   document.getElementById("errBox").innerHTML = `<div class="err" style="background:var(--teal-bg);border-color:var(--teal);color:#0a6e59;">🧪 데모 데이터입니다 — 실제 대본 분석이 아닌 화면 레이아웃 확인용 샘플입니다.</div>`;
   renderResults(buildDemoData());
 });

@@ -1,0 +1,389 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>뉴헤어 영상 제작 도구</title>
+<style>
+  :root{
+    --bg: #16151a;
+    --panel: #201f26;
+    --panel-2: #2a2932;
+    --line: #3a3843;
+    --red: #e10e1d;
+    --gold: #f2b705;
+    --yellow: #ffe04d;
+    --ink: #f5f1ea;
+    --muted: #9a96a3;
+    --teal: #16c8b6;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    background:var(--bg);
+    color:var(--ink);
+    font-family:"Pretendard","Apple SD Gothic Neo","Malgun Gothic",-apple-system,sans-serif;
+    line-height:1.55;
+  }
+  .wrap{max-width:920px;margin:0 auto;padding:28px 20px 80px;}
+
+  .slate{
+    background:repeating-linear-gradient(135deg,#0e0d11,#0e0d11 14px,#1c1b21 14px,#1c1b21 28px);
+    border:3px solid var(--ink);
+    border-radius:10px;
+    padding:16px 20px;
+    margin-bottom:22px;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:12px;
+    flex-wrap:wrap;
+  }
+  .slate h1{font-size:19px;margin:0;letter-spacing:-0.2px;}
+  .slate .sub{color:var(--muted);font-size:12.5px;margin-top:3px;}
+  .badge{background:var(--red);color:#fff;font-weight:700;font-size:12px;padding:6px 12px;border-radius:999px;border:2px solid #fff2;}
+
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:20px;margin-bottom:16px;}
+  .card h2{font-size:14px;margin:0 0 14px;color:var(--gold);display:flex;align-items:center;gap:8px;letter-spacing:0.2px;}
+  .card h2 .n{background:var(--gold);color:#1a1a1a;width:20px;height:20px;border-radius:6px;display:inline-flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;}
+
+  label{font-size:12.5px;color:var(--muted);display:block;margin-bottom:6px;}
+  .row{display:flex;gap:10px;flex-wrap:wrap;}
+  .row > div{flex:1;min-width:160px;}
+
+  .tabgroup{display:flex;gap:8px;margin-bottom:4px;}
+  .tab{flex:1;padding:10px 12px;border-radius:8px;border:2px solid var(--line);background:var(--panel-2);color:var(--muted);text-align:center;font-weight:700;font-size:13.5px;cursor:pointer;user-select:none;transition:.12s;}
+  .tab.active{border-color:var(--red);color:#fff;background:linear-gradient(180deg,#3a1418,#241014);}
+  .tab.active.gold{border-color:var(--gold);background:linear-gradient(180deg,#3a2f0f,#241d0a);}
+
+  input[type=text], input[type=url], textarea, select{
+    width:100%;background:#141318;border:1px solid var(--line);color:var(--ink);
+    border-radius:8px;padding:10px 12px;font-size:13.5px;font-family:inherit;resize:vertical;
+  }
+  textarea:focus, input:focus, select:focus{outline:2px solid var(--gold);outline-offset:1px;}
+  textarea.script{min-height:220px;font-family:"D2Coding","Consolas",monospace;font-size:13px;line-height:1.6;}
+
+  .fileRow{display:flex;align-items:center;gap:10px;margin-bottom:10px;flex-wrap:wrap;}
+  .fileBtn{display:inline-block;background:var(--panel-2);border:1px solid var(--line);padding:8px 12px;border-radius:8px;font-size:12.5px;cursor:pointer;color:var(--ink);}
+  .fileBtn:hover{border-color:var(--gold);}
+  input[type=file]{display:none;}
+  .hint{color:var(--muted);font-size:11.5px;margin-top:4px;}
+
+  .genBtn{
+    width:100%;background:linear-gradient(180deg,var(--red),#b60c18);border:none;color:#fff;
+    font-weight:800;font-size:15px;padding:14px;border-radius:10px;cursor:pointer;letter-spacing:0.3px;
+    box-shadow:0 4px 0 #7c0710;
+  }
+  .genBtn:active{transform:translateY(2px);box-shadow:0 2px 0 #7c0710;}
+  .genBtn:disabled{opacity:.5;cursor:not-allowed;box-shadow:none;}
+
+  .err{background:#3a1418;border:1px solid var(--red);color:#ffb3b8;padding:10px 14px;border-radius:8px;font-size:13px;margin-top:12px;white-space:pre-wrap;}
+
+  .resultCard{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:18px 20px;margin-bottom:14px;}
+  .resultHead{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;}
+  .resultHead h3{font-size:13.5px;margin:0;color:var(--yellow);text-transform:uppercase;letter-spacing:0.6px;}
+  .copyBtn{background:var(--panel-2);border:1px solid var(--line);color:var(--muted);font-size:11.5px;padding:6px 10px;border-radius:6px;cursor:pointer;}
+  .copyBtn:hover{color:var(--teal);border-color:var(--teal);}
+  .copyBtn.copied{color:var(--teal);border-color:var(--teal);}
+
+  .typoItem{border-left:3px solid var(--red);padding:6px 0 6px 12px;margin-bottom:8px;font-size:13.5px;}
+  .typoItem .before{color:#ff8a8a;text-decoration:line-through;}
+  .typoItem .after{color:var(--teal);font-weight:700;}
+  .typoItem .note{color:var(--muted);font-size:12px;margin-top:2px;}
+  .empty{color:var(--muted);font-size:13px;}
+
+  ol.titles{margin:0;padding-left:20px;}
+  ol.titles li{margin-bottom:8px;font-size:14px;}
+
+  .thumbCard{border:1px solid var(--line);border-radius:10px;padding:12px 14px;margin-bottom:10px;background:var(--panel-2);}
+  .thumbCard .cat{display:inline-block;background:var(--gold);color:#1a1a1a;font-size:11px;font-weight:800;padding:2px 8px;border-radius:6px;margin-bottom:6px;}
+  .thumbCard .headline{font-weight:800;font-size:15px;}
+  .thumbCard .sub{color:var(--muted);font-size:12.5px;margin-top:2px;}
+
+  pre.desc{white-space:pre-wrap;word-break:break-word;font-family:inherit;font-size:13.5px;background:#141318;border:1px solid var(--line);border-radius:8px;padding:14px;margin:0;}
+
+  .loading{display:flex;align-items:center;gap:10px;color:var(--muted);font-size:13.5px;padding:6px 0;}
+  .spinner{width:16px;height:16px;border:2px solid var(--line);border-top-color:var(--gold);border-radius:50%;animation:spin .8s linear infinite;}
+  @keyframes spin{to{transform:rotate(360deg);}}
+
+  .foundTag{display:inline-block;font-size:11px;font-weight:800;padding:2px 8px;border-radius:6px;margin-left:6px;}
+  .foundTag.ok{background:var(--teal);color:#0c1f1c;}
+  .foundTag.no{background:#5a5560;color:#e8e5ea;}
+
+  .autoField{margin-bottom:10px;}
+  .autoField .label{font-size:12px;color:var(--muted);margin-bottom:4px;display:flex;align-items:center;}
+
+  .footNote{color:var(--muted);font-size:11.5px;text-align:center;margin-top:20px;}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="slate">
+    <div>
+      <h1>뉴헤어 영상 제작 도구</h1>
+      <div class="sub">스크립트만 넣으면 오타체크·제목·썸네일·설명글(관련 영상/블로그 자동 링크)까지</div>
+    </div>
+    <div class="badge">ONLY FOR JOY</div>
+  </div>
+
+  <div class="card">
+    <h2><span class="n">1</span>채널 / 영상 유형</h2>
+    <div class="row">
+      <div>
+        <label>채널</label>
+        <div class="tabgroup" id="channelTabs">
+          <div class="tab active" data-val="뉴헤어">김진오의 뉴헤어</div>
+          <div class="tab" data-val="모벤저스">모벤져스</div>
+        </div>
+      </div>
+      <div>
+        <label>영상 유형</label>
+        <div class="tabgroup" id="typeTabs">
+          <div class="tab active gold" data-val="롱폼">롱폼</div>
+          <div class="tab gold" data-val="숏츠">숏츠</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2><span class="n">2</span>스크립트 / 자막 원문</h2>
+    <div class="fileRow">
+      <label class="fileBtn" for="fileInput">📄 txt 파일 불러오기</label>
+      <input type="file" id="fileInput" accept=".txt">
+      <span class="hint" id="fileName"></span>
+    </div>
+    <textarea class="script" id="scriptText" placeholder="여기에 자막/대본 원문을 붙여넣으세요"></textarea>
+  </div>
+
+  <button class="genBtn" id="genBtn">🎬 생성하기 (오타체크·제목·썸네일·설명글 자동)</button>
+  <div id="errBox"></div>
+  <div id="loadingBox"></div>
+
+  <div id="results"></div>
+
+  <div class="footNote">나만 쓰는 개인용 제작 도구 · 자동으로 찾은 영상/블로그는 항상 확인 후 사용하세요</div>
+</div>
+
+<script>
+let channel = "뉴헤어";
+let contentType = "롱폼";
+let lastAnalysis = null;
+
+function setupTabs(groupId, onChange){
+  const group = document.getElementById(groupId);
+  group.querySelectorAll(".tab").forEach(tab=>{
+    tab.addEventListener("click", ()=>{
+      group.querySelectorAll(".tab").forEach(t=>t.classList.remove("active"));
+      tab.classList.add("active");
+      onChange(tab.dataset.val);
+    });
+  });
+}
+setupTabs("channelTabs", (v)=> channel = v);
+setupTabs("typeTabs", (v)=> contentType = v);
+
+document.getElementById("fileInput").addEventListener("change", (e)=>{
+  const file = e.target.files[0];
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = (ev)=>{
+    document.getElementById("scriptText").value = ev.target.result;
+    document.getElementById("fileName").textContent = "불러옴: " + file.name;
+  };
+  reader.onerror = ()=>{ document.getElementById("fileName").textContent = "파일을 읽지 못했습니다."; };
+  reader.readAsText(file, "UTF-8");
+});
+
+function escapeHtml(s){
+  const d = document.createElement("div");
+  d.textContent = s == null ? "" : s;
+  return d.innerHTML;
+}
+
+function copyText(btn, text){
+  const done = ()=>{
+    btn.textContent = "복사됨 ✓";
+    btn.classList.add("copied");
+    setTimeout(()=>{ btn.textContent = "복사"; btn.classList.remove("copied"); }, 1500);
+  };
+  if(navigator.clipboard && navigator.clipboard.writeText){
+    navigator.clipboard.writeText(text).then(done).catch(()=>fallbackCopy(text, done));
+  } else { fallbackCopy(text, done); }
+}
+function fallbackCopy(text, done){
+  const ta = document.createElement("textarea");
+  ta.value = text; document.body.appendChild(ta); ta.select();
+  try{ document.execCommand("copy"); done(); }catch(e){}
+  document.body.removeChild(ta);
+}
+
+async function callGenerate(payload){
+  let response;
+  try{
+    response = await fetch("/.netlify/functions/generate", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload)
+    });
+  }catch(networkErr){
+    throw new Error("서버 함수에 연결하지 못했습니다 (Failed to fetch). Netlify에 배포된 상태에서 접속 중인지 확인해주세요.");
+  }
+  let data;
+  try{ data = await response.json(); }
+  catch(parseErr){ throw new Error("서버 응답을 읽지 못했습니다 (status " + response.status + ")."); }
+  if(!response.ok){
+    throw new Error("서버 오류 (" + response.status + "): " + (data.error || JSON.stringify(data)));
+  }
+  return data;
+}
+
+async function generate(){
+  const errBox = document.getElementById("errBox");
+  const loadingBox = document.getElementById("loadingBox");
+  const resultsBox = document.getElementById("results");
+  const genBtn = document.getElementById("genBtn");
+
+  errBox.innerHTML = "";
+  const script = document.getElementById("scriptText").value.trim();
+  if(!script){
+    errBox.innerHTML = `<div class="err">대본/스크립트를 먼저 입력해주세요.</div>`;
+    return;
+  }
+
+  genBtn.disabled = true;
+  loadingBox.innerHTML = `<div class="loading"><div class="spinner"></div>생성 중입니다... (오타체크 → 관련 영상/블로그 검색 → 설명글 조립, 10~20초 정도 걸릴 수 있어요)</div>`;
+  resultsBox.innerHTML = "";
+
+  try{
+    const data = await callGenerate({ channel, contentType, script });
+    lastAnalysis = data;
+    renderResults(data);
+  }catch(e){
+    errBox.innerHTML = `<div class="err">생성 실패: ${escapeHtml(e.message)}</div>`;
+  }finally{
+    genBtn.disabled = false;
+    loadingBox.innerHTML = "";
+  }
+}
+
+function buildDescription(){
+  const intro = document.getElementById("descIntro").value.trim();
+  const tagSuffix = document.getElementById("tagSuffix").value;
+  const lines = [intro];
+
+  const vTitle = document.getElementById("vTitle").value.trim();
+  const vUrl = document.getElementById("vUrl").value.trim();
+  const bTitle = document.getElementById("bTitle").value.trim();
+  const bUrl = document.getElementById("bUrl").value.trim();
+  const refText = document.getElementById("refText").value.trim();
+
+  const linkLines = [];
+  if(vTitle && vUrl) linkLines.push(`🎬 ${vTitle}${tagSuffix} ${vUrl}`);
+  if(bTitle && bUrl) linkLines.push(`📝 ${bTitle} ${bUrl}`);
+  if(linkLines.length){ lines.push(""); lines.push(...linkLines); }
+
+  if(refText){ lines.push(""); lines.push(refText); }
+
+  return lines.join("\n");
+}
+
+function refreshDescPreview(){
+  document.getElementById("descPreview").textContent = buildDescription();
+}
+
+function renderResults(data){
+  const resultsBox = document.getElementById("results");
+  const isLong = contentType === "롱폼";
+  let html = "";
+
+  // 오타체크
+  html += `<div class="resultCard"><div class="resultHead"><h3>오타 체크</h3></div>`;
+  if(data.typos && data.typos.length){
+    html += data.typos.map(t=>`
+      <div class="typoItem">
+        <span class="before">${escapeHtml(t.before)}</span> → <span class="after">${escapeHtml(t.after)}</span>
+        ${t.note? `<div class="note">${escapeHtml(t.note)}</div>`:""}
+      </div>`).join("");
+  } else { html += `<div class="empty">발견된 오타/오류가 없습니다.</div>`; }
+  html += `</div>`;
+
+  // 제목
+  const titlesText = (data.titles||[]).map((t,i)=>`${i+1}. ${t}`).join("\n");
+  html += `<div class="resultCard"><div class="resultHead"><h3>제목 추천</h3><button class="copyBtn" id="copyTitles">복사</button></div>`;
+  html += `<ol class="titles">` + (data.titles||[]).map(t=>`<li>${escapeHtml(t)}</li>`).join("") + `</ol></div>`;
+
+  // 썸네일 / 영상내제목
+  if(isLong){
+    html += `<div class="resultCard"><div class="resultHead"><h3>썸네일 추천</h3></div>`;
+    html += (data.thumbnails||[]).map(t=>`
+      <div class="thumbCard">
+        <span class="cat">${escapeHtml(t.category)}</span>
+        <div class="headline">${escapeHtml(t.headline)}</div>
+        ${t.sub? `<div class="sub">${escapeHtml(t.sub)}</div>`:""}
+      </div>`).join("");
+    html += `</div>`;
+  } else {
+    const otText = (data.onscreen_titles||[]).map((t,i)=>`${i+1}. ${t}`).join("\n");
+    html += `<div class="resultCard"><div class="resultHead"><h3>영상 내 제목 추천</h3><button class="copyBtn" id="copyOnscreen">복사</button></div>`;
+    html += `<ol class="titles">` + (data.onscreen_titles||[]).map(t=>`<li>${escapeHtml(t)}</li>`).join("") + `</ol></div>`;
+  }
+
+  // 자동 검색 결과 + 설명글
+  html += `<div class="resultCard">
+    <div class="resultHead"><h3>설명글 (자동 검색 결과 확인/수정)</h3></div>
+
+    <div class="autoField">
+      <div class="label">도입부</div>
+      <textarea id="descIntro" style="min-height:70px;">${escapeHtml(data.description_intro)}</textarea>
+    </div>
+
+    <div class="autoField">
+      <div class="label">🎬 관련 영상 <span class="foundTag ${data.video.found?'ok':'no'}">${data.video.found?'자동 검색됨':'못 찾음 - 직접 입력'}</span></div>
+      <div class="row">
+        <div><input type="text" id="vTitle" placeholder="영상 제목" value="${escapeHtml(data.video.title||"")}"></div>
+        <div><input type="url" id="vUrl" placeholder="영상 URL" value="${escapeHtml(data.video.url||"")}"></div>
+      </div>
+    </div>
+
+    <div class="autoField">
+      <div class="label">📝 관련 블로그 <span class="foundTag ${data.blog.found?'ok':'no'}">${data.blog.found?'자동 검색됨':'못 찾음 - 직접 입력'}</span></div>
+      <div class="row">
+        <div><input type="text" id="bTitle" placeholder="블로그 제목" value="${escapeHtml(data.blog.title||"")}"></div>
+        <div><input type="url" id="bUrl" placeholder="블로그 URL" value="${escapeHtml(data.blog.url||"")}"></div>
+      </div>
+    </div>
+
+    <div class="autoField">
+      <div class="label">태그 표기</div>
+      <input type="text" id="tagSuffix" value="${escapeHtml(data.defaultTag)}">
+    </div>
+
+    <div class="autoField">
+      <div class="label">참고문헌 <span class="foundTag ${data.references.found?'ok':'no'}">${data.references.found?'자동 추출됨':'못 찾음(없거나 추출 실패)'}</span></div>
+      <textarea id="refText" style="min-height:60px;font-size:12px;">${escapeHtml(data.references.text||"")}</textarea>
+    </div>
+
+    <div class="resultHead" style="margin-top:14px;"><h3>최종 설명글 미리보기</h3><button class="copyBtn" id="copyDesc">복사</button></div>
+    <pre class="desc" id="descPreview"></pre>
+  </div>`;
+
+  resultsBox.innerHTML = html;
+
+  ["descIntro","vTitle","vUrl","bTitle","bUrl","tagSuffix","refText"].forEach(id=>{
+    document.getElementById(id).addEventListener("input", refreshDescPreview);
+  });
+  refreshDescPreview();
+
+  const titlesEl = document.getElementById("copyTitles");
+  if(titlesEl) titlesEl.addEventListener("click", ()=>copyText(titlesEl, titlesText));
+  const otEl = document.getElementById("copyOnscreen");
+  if(otEl) otEl.addEventListener("click", ()=>copyText(otEl, (data.onscreen_titles||[]).map((t,i)=>`${i+1}. ${t}`).join("\n")));
+  document.getElementById("copyDesc").addEventListener("click", (e)=>copyText(e.target, buildDescription()));
+}
+
+document.getElementById("genBtn").addEventListener("click", generate);
+</script>
+</body>
+</html>

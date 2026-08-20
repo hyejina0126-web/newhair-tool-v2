@@ -36,9 +36,6 @@
     .col-left{position:sticky;top:20px;}
   }
   #resultsEmpty{display:flex;align-items:center;justify-content:center;min-height:200px;}
-  .subgrid{display:grid;grid-template-columns:1fr;gap:14px;}
-  @media (min-width:640px){ .subgrid{grid-template-columns:1fr 1fr;} }
-  .subgrid > details.resultCard{margin-bottom:0;}
 
   /* 시그니처: 파스텔 하늘색 그라데이션 히어로 + 동동 떠 있는 원형 장식 (참고 이미지의 소프트 UI 느낌) */
   .slate{
@@ -554,9 +551,6 @@ function renderResults(data){
     <pre class="desc" id="descPreview"></pre>
   </div>`;
 
-  // ---- 여기서부터 부가 카드들은 옆으로 나란히 배치 ----
-  html += `<div class="subgrid">`;
-
   // 해시태그 30개 (별도 리스트, 롱폼/숏츠 공통 — 설명글에는 안 들어감, 참고용)
   const ht30Text = (data.hashtags_30||[]).join(" ");
   html += `<details class="resultCard"><summary><h3>해시태그 30개</h3></summary><div class="acc-body">`;
@@ -596,8 +590,6 @@ function renderResults(data){
     </div>
     </div>
   </details>`;
-
-  html += `</div>`; // .subgrid 닫기
 
   resultsBox.innerHTML = html;
 

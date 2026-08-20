@@ -38,7 +38,7 @@ async function claudeAnalyze(apiKey, channel, contentType, script) {
   const isLong = contentType === "롱폼";
   let schemaFields = `- "typos": [{"before":"오타/오류 표현","after":"수정 표현","note":"이유(짧게)"}] (최대 8개, 없으면 빈 배열)
 - "titles": ["제목1","제목2","제목3"] (3개, 채널 태그 붙이지 말고 순수 제목만)
-- "description_intro": "설명글 도입부 2~4문장. 정중한 설명체(-습니다), 어그로성 표현 금지, 영상 핵심 내용을 정보 전달 톤으로 요약"
+- "description_intro": "설명글 도입부 5~10문장. 정중하되(-습니다/-요 혼용 가능) 딱딱하지 않고 친근하게 말하듯 자연스러운 톤, 어그로성 표현 금지, 영상 핵심 내용을 충분히 설명"
 - "search_keywords": ["키워드1","키워드2","키워드3"] (관련 영상/블로그를 검색할 핵심 키워드 2~3개, 명사 위주 짧은 구)
 - "hashtags_30": ["#해시태그1","#해시태그2", ... ] (탈모/모발이식 관련 해시태그 정확히 30개, "#"을 붙여서, 채널·영상 내용과 관련된 것 위주)`;
 
@@ -66,7 +66,7 @@ ${schemaFields}
     headers: { "Content-Type": "application/json", "x-api-key": apiKey, "anthropic-version": "2023-06-01" },
     body: JSON.stringify({
       model: "claude-sonnet-4-6",
-      max_tokens: 2500,
+      max_tokens: 3000,
       system,
       messages: [{ role: "user", content: `[대본/스크립트]\n${script}` }]
     })

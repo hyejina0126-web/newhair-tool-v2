@@ -36,6 +36,9 @@
     .col-left{position:sticky;top:20px;}
   }
   #resultsEmpty{display:flex;align-items:center;justify-content:center;min-height:200px;}
+  .subgrid{display:grid;grid-template-columns:1fr;gap:14px;}
+  @media (min-width:640px){ .subgrid{grid-template-columns:1fr 1fr;} }
+  .subgrid > details.resultCard{margin-bottom:0;}
 
   /* 시그니처: 파스텔 하늘색 그라데이션 히어로 + 동동 떠 있는 원형 장식 (참고 이미지의 소프트 UI 느낌) */
   .slate{
@@ -156,6 +159,7 @@
   .thumbCard .headline{font-weight:800;font-size:15px;line-height:1.45;color:var(--ink);}
   .thumbCard .headline .hl{color:var(--red);}
   .thumbCard .sub{color:var(--ink);font-weight:400;font-size:15px;margin-top:2px;line-height:1.45;}
+  .thumbCard .sub .hl{color:var(--red);font-weight:800;}
 
   pre.desc{white-space:pre-wrap;word-break:break-word;font-family:inherit;font-size:13.5px;background:var(--panel-2);border:1.5px solid var(--line);border-radius:14px;padding:14px;margin:0;}
 
@@ -243,6 +247,20 @@
             </div>
           </div>
           <pre class="desc" id="srtPreview" style="max-height:280px;overflow:auto;"></pre>
+          <div style="display:flex;gap:8px;margin-top:10px;">
+            <button type="button" class="fileBtn" id="translateSrtEnBtn">🇺🇸 영어 SRT</button>
+            <button type="button" class="fileBtn" id="translateSrtJaBtn">🇯🇵 일본어 SRT</button>
+          </div>
+          <div class="hint" id="srtTranslateStatus"></div>
+          <div id="srtTranslateResultBox" style="display:none;margin-top:10px;">
+            <div class="resultHead" style="margin-bottom:8px;"><h3 id="srtTranslateLabel" style="color:var(--red-dark);">번역 SRT</h3>
+              <div style="display:flex;gap:6px;">
+                <button type="button" class="copyBtn" id="copySrtTranslated">복사</button>
+                <button type="button" class="copyBtn" id="downloadSrtTranslated">.srt 다운로드</button>
+              </div>
+            </div>
+            <pre class="desc" id="srtTranslatedPreview" style="max-height:280px;overflow:auto;"></pre>
+          </div>
         </div>
         </div>
       </details>
@@ -431,7 +449,7 @@ function renderResults(data){
   let html = "";
 
   // 오타체크
-  html += `<div class="resultCard"><div class="resultHead"><h3>오타 체크</h3></div>`;
+  html += `<details class="resultCard" open><summary><h3>오타 체크 ${(data.typos&&data.typos.length)?`<span class="foundTag no" style="margin-left:6px;">${data.typos.length}건</span>`:""}</h3></summary><div class="acc-body">`;
   if(data.typos && data.typos.length){
     html += data.typos.map(t=>`
       <div class="typoItem">
@@ -439,7 +457,7 @@ function renderResults(data){
         ${t.note? `<div class="note">${escapeHtml(t.note)}</div>`:""}
       </div>`).join("");
   } else { html += `<div class="empty">발견된 오타/오류가 없습니다.</div>`; }
-  html += `</div>`;
+  html += `</div></details>`;
 
   // 제목
   const titlesText = (data.titles||[]).map((t,i)=>`${i+1}. ${t}`).join("\n");
@@ -454,7 +472,7 @@ function renderResults(data){
       <div class="thumbCard">
         <span class="cat">${escapeHtml(t.category)}</span>
         <div class="headline">${highlightWords(t.headline, t.emphasis)}</div>
-        ${t.sub? `<div class="sub">${escapeHtml(t.sub)}</div>`:""}
+        ${t.sub? `<div class="sub">${highlightWords(t.sub, t.emphasis)}</div>`:""}
       </div>`).join("");
     html += `</div>`;
   } else {
@@ -536,6 +554,9 @@ function renderResults(data){
     <pre class="desc" id="descPreview"></pre>
   </div>`;
 
+  // ---- 여기서부터 부가 카드들은 옆으로 나란히 배치 ----
+  html += `<div class="subgrid">`;
+
   // 해시태그 30개 (별도 리스트, 롱폼/숏츠 공통 — 설명글에는 안 들어감, 참고용)
   const ht30Text = (data.hashtags_30||[]).join(" ");
   html += `<details class="resultCard"><summary><h3>해시태그 30개</h3></summary><div class="acc-body">`;
@@ -575,6 +596,8 @@ function renderResults(data){
     </div>
     </div>
   </details>`;
+
+  html += `</div>`; // .subgrid 닫기
 
   resultsBox.innerHTML = html;
 
@@ -727,7 +750,7 @@ function msToSrtTime(ms){
   return `${pad2(h)}:${pad2(mi)}:${pad2(s)},${pad3(msec)}`;
 }
 
-function scriptToSrt(text, fps){
+function parseScriptEntries(text, fps){
   const tcLineRe = /^\s*(\d{1,2}:\d{2}:\d{2}(?:[:,]\d{2,3})?)\s*[-~]\s*(\d{1,2}:\d{2}:\d{2}(?:[:,]\d{2,3})?)\s*$/;
   const lines = text.split(/\r?\n/);
   const entries = [];
@@ -746,12 +769,19 @@ function scriptToSrt(text, fps){
     }
   }
   if(current && current.textLines.length) entries.push(current);
+  return entries;
+}
 
-  if(entries.length === 0) return null;
-
+function buildSrtFromEntries(entries){
+  if(!entries || entries.length === 0) return null;
   return entries.map((e, i) =>
     `${i+1}\n${msToSrtTime(e.start)} --> ${msToSrtTime(e.end)}\n${e.textLines.join("\n")}\n`
   ).join("\n");
+}
+
+function scriptToSrt(text, fps){
+  const entries = parseScriptEntries(text, fps);
+  return buildSrtFromEntries(entries);
 }
 
 function detectFps(text){
@@ -768,6 +798,8 @@ function detectFps(text){
   if(maxFrame <= 29) return 30;
   return 60;
 }
+
+let lastSrtEntries = null;
 
 document.getElementById("convertSrtBtn").addEventListener("click", ()=>{
   const text = document.getElementById("scriptText").value;
@@ -792,13 +824,16 @@ document.getElementById("convertSrtBtn").addEventListener("click", ()=>{
   }
 
   const fps = parseFloat(fpsSelect.value);
-  const srt = scriptToSrt(text, fps);
+  const entries = parseScriptEntries(text, fps);
+  const srt = buildSrtFromEntries(entries);
   if(!srt){
     statusEl.textContent = "타임코드 형식(예: 00:00:00:00 - 00:00:01:09)을 찾지 못했습니다. 대본 형식을 확인해주세요.";
     resultBox.style.display = "none";
+    lastSrtEntries = null;
     return;
   }
 
+  lastSrtEntries = entries;
   statusEl.textContent = detectNote || "변환 완료.";
   document.getElementById("srtPreview").textContent = srt;
   resultBox.style.display = "block";
@@ -815,7 +850,85 @@ document.getElementById("convertSrtBtn").addEventListener("click", ()=>{
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
   };
+
+  document.getElementById("srtTranslateResultBox").style.display = "none";
+  document.getElementById("srtTranslateStatus").textContent = "";
 });
+
+function downloadSrtBlob(srtText, filename){
+  const blob = new Blob([srtText], { type: "text/plain;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+const srtDemoTranslations = {
+  en: ["Hello, I'm Kim Jin-oh.", "If you check social media or YouTube these days,"],
+  ja: ["こんにちは、キム・ジノです。", "最近インスタグラムやユーチューブを見ていると、"]
+};
+
+async function runSrtTranslate(targetLang){
+  const statusEl = document.getElementById("srtTranslateStatus");
+  const resultBox = document.getElementById("srtTranslateResultBox");
+  const label = { en: "🇺🇸 영어 SRT 결과", ja: "🇯🇵 일본어 SRT 결과" }[targetLang];
+
+  if(!lastSrtEntries || !lastSrtEntries.length){
+    statusEl.textContent = "먼저 위에서 SRT로 변환해주세요.";
+    return;
+  }
+
+  document.getElementById("srtTranslateLabel").textContent = label;
+
+  if(isDemoMode){
+    statusEl.textContent = "🧪 데모 번역입니다 — 실제 번역이 아닌 샘플입니다.";
+    const demoTexts = lastSrtEntries.map((e,i) => srtDemoTranslations[targetLang][i % srtDemoTranslations[targetLang].length]);
+    const translatedEntries = lastSrtEntries.map((e,i) => ({ start: e.start, end: e.end, textLines: [demoTexts[i]] }));
+    const translatedSrt = buildSrtFromEntries(translatedEntries);
+    document.getElementById("srtTranslatedPreview").textContent = translatedSrt;
+    resultBox.style.display = "block";
+    document.getElementById("copySrtTranslated").onclick = (e) => copyText(e.target, translatedSrt);
+    document.getElementById("downloadSrtTranslated").onclick = () => downloadSrtBlob(translatedSrt, `subtitle_${targetLang}.srt`);
+    return;
+  }
+
+  statusEl.textContent = "번역 중... (자막 줄이 많으면 시간이 좀 걸려요)";
+  document.getElementById("translateSrtEnBtn").disabled = true;
+  document.getElementById("translateSrtJaBtn").disabled = true;
+  try{
+    const texts = lastSrtEntries.map(e => e.textLines.join("\n"));
+    const res = await fetch("/.netlify/functions/translate-srt", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ texts, targetLang })
+    });
+    const result = await res.json();
+    if(!res.ok || result.error){
+      statusEl.textContent = "번역 실패: " + (result.error || res.status);
+      resultBox.style.display = "none";
+      return;
+    }
+    const translatedEntries = lastSrtEntries.map((e, i) => ({ start: e.start, end: e.end, textLines: [result.texts[i]] }));
+    const translatedSrt = buildSrtFromEntries(translatedEntries);
+    document.getElementById("srtTranslatedPreview").textContent = translatedSrt;
+    resultBox.style.display = "block";
+    statusEl.textContent = "번역 완료.";
+    document.getElementById("copySrtTranslated").onclick = (e) => copyText(e.target, translatedSrt);
+    document.getElementById("downloadSrtTranslated").onclick = () => downloadSrtBlob(translatedSrt, `subtitle_${targetLang}.srt`);
+  }catch(e){
+    statusEl.textContent = "요청 실패: " + e.message;
+  }finally{
+    document.getElementById("translateSrtEnBtn").disabled = false;
+    document.getElementById("translateSrtJaBtn").disabled = false;
+  }
+}
+
+document.getElementById("translateSrtEnBtn").addEventListener("click", () => runSrtTranslate("en"));
+document.getElementById("translateSrtJaBtn").addEventListener("click", () => runSrtTranslate("ja"));
 
 function buildDemoData(){
   const isLong = contentType === "롱폼";
@@ -843,9 +956,9 @@ function buildDemoData(){
   };
   if(isLong){
     base.thumbnails = [
-      { category: "탈모치료 정보", headline: "연모화 놓치면 골든타임 끝", emphasis: ["골든타임"], sub: "지금 확인 안 하면 늦습니다" },
+      { category: "탈모치료 정보", headline: "연모화 놓치면 골든타임 끝", emphasis: ["골든타임", "늦습니다"], sub: "지금 확인 안 하면 늦습니다" },
       { category: "모발이식 정보", headline: "이식 전 반드시 체크할 4가지", emphasis: ["반드시"], sub: "" },
-      { category: "탈모 팩트체크", headline: "미녹시딜 진짜 효과 있을까", emphasis: ["진짜"], sub: "전문의가 직접 답한다" }
+      { category: "탈모 팩트체크", headline: "미녹시딜 진짜 효과 있을까", emphasis: ["진짜", "직접 답한다"], sub: "전문의가 직접 답한다" }
     ];
   } else {
     base.onscreen_titles = [

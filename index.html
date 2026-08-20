@@ -185,6 +185,15 @@
     <div class="badge">ONLY FOR JOY</div>
   </div>
 
+  <details class="card" id="logViewerAcc">
+    <summary><h2>📅 날짜별 기록 보기 <span style="color:var(--muted);font-weight:400;text-transform:none;font-size:11.5px;">(팀 공유)</span></h2></summary>
+    <div class="acc-body">
+      <button type="button" class="fileBtn" id="refreshLogBtn">🔄 새로고침</button>
+      <div class="hint" id="logViewStatus"></div>
+      <div id="logViewList" style="margin-top:10px;"></div>
+    </div>
+  </details>
+
   <div class="layout">
     <div class="col-left">
 
@@ -237,27 +246,19 @@
         <button type="button" class="fileBtn" id="convertSrtBtn" style="margin-top:8px;">🔁 SRT로 변환</button>
         <div class="hint" id="srtStatus"></div>
         <div id="srtResultBox" style="display:none;margin-top:10px;">
-          <div class="resultHead" style="margin-bottom:8px;"><h3 style="color:var(--red-dark);">SRT 결과</h3>
+          <div class="tabgroup" id="srtLangTabs" style="margin-bottom:10px;">
+            <div class="tab active gold" data-lang="ko">🇰🇷 한국어</div>
+            <div class="tab gold" data-lang="en">🇺🇸 영어</div>
+            <div class="tab gold" data-lang="ja">🇯🇵 일본어</div>
+          </div>
+          <div class="resultHead" style="margin-bottom:8px;"><h3 id="srtResultLabel" style="color:var(--red-dark);">SRT 결과 (한국어)</h3>
             <div style="display:flex;gap:6px;">
               <button type="button" class="copyBtn" id="copySrt">복사</button>
               <button type="button" class="copyBtn" id="downloadSrt">.srt 다운로드</button>
             </div>
           </div>
-          <pre class="desc" id="srtPreview" style="max-height:280px;overflow:auto;"></pre>
-          <div style="display:flex;gap:8px;margin-top:10px;">
-            <button type="button" class="fileBtn" id="translateSrtEnBtn">🇺🇸 영어 SRT</button>
-            <button type="button" class="fileBtn" id="translateSrtJaBtn">🇯🇵 일본어 SRT</button>
-          </div>
           <div class="hint" id="srtTranslateStatus"></div>
-          <div id="srtTranslateResultBox" style="display:none;margin-top:10px;">
-            <div class="resultHead" style="margin-bottom:8px;"><h3 id="srtTranslateLabel" style="color:var(--red-dark);">번역 SRT</h3>
-              <div style="display:flex;gap:6px;">
-                <button type="button" class="copyBtn" id="copySrtTranslated">복사</button>
-                <button type="button" class="copyBtn" id="downloadSrtTranslated">.srt 다운로드</button>
-              </div>
-            </div>
-            <pre class="desc" id="srtTranslatedPreview" style="max-height:280px;overflow:auto;"></pre>
-          </div>
+          <pre class="desc" id="srtPreview" style="max-height:280px;overflow:auto;"></pre>
         </div>
         </div>
       </details>
@@ -460,8 +461,17 @@ function renderResults(data){
 
   // 제목
   const titlesText = (data.titles||[]).map((t,i)=>`${i+1}. ${t}`).join("\n");
-  html += `<div class="resultCard"><div class="resultHead"><h3>제목 추천</h3><button class="copyBtn" id="copyTitles">복사</button></div>`;
-  html += `<ol class="titles">` + (data.titles||[]).map(t=>`<li>${escapeHtml(t)}</li>`).join("") + `</ol></div>`;
+  html += `<div class="resultCard"><div class="resultHead"><h3>제목 추천 ${!isLong? `<span class="foundTag no" style="margin-left:6px;">숏츠는 하나 선택 필요</span>`:""}</h3><button class="copyBtn" id="copyTitles">복사</button></div>`;
+  if(!isLong){
+    html += `<div id="titleChoiceGroup">` + (data.titles||[]).map((t,i)=>`
+      <label style="display:flex;align-items:flex-start;gap:8px;margin-bottom:8px;font-size:14px;cursor:pointer;">
+        <input type="radio" name="titleChoice" value="${i}" style="margin-top:4px;">
+        <span>${escapeHtml(t)}</span>
+      </label>`).join("") + `</div>`;
+  } else {
+    html += `<ol class="titles">` + (data.titles||[]).map(t=>`<li>${escapeHtml(t)}</li>`).join("") + `</ol>`;
+  }
+  html += `</div>`;
 
   // 썸네일 / 영상내제목
   let otText = "";
@@ -476,11 +486,14 @@ function renderResults(data){
     html += `</div>`;
   } else {
     otText = (data.onscreen_titles||[]).join("\n\n");
-    html += `<div class="resultCard"><div class="resultHead"><h3>영상 내 제목 추천</h3><button class="copyBtn" id="copyOnscreen">복사</button></div>`;
-    html += (data.onscreen_titles||[]).map(t=>`
-      <div class="thumbCard">
-        <div class="headline" style="white-space:pre-line;line-height:1.4;">${escapeHtml(t)}</div>
-      </div>`).join("");
+    html += `<div class="resultCard"><div class="resultHead"><h3>영상 내 제목 추천 <span class="foundTag no" style="margin-left:6px;">하나 선택 필요</span></h3><button class="copyBtn" id="copyOnscreen">복사</button></div>`;
+    html += `<div id="onscreenChoiceGroup">` + (data.onscreen_titles||[]).map((t,i)=>`
+      <label style="display:flex;align-items:flex-start;gap:8px;cursor:pointer;">
+        <input type="radio" name="onscreenChoice" value="${i}" style="margin-top:16px;">
+        <div class="thumbCard" style="flex:1;">
+          <div class="headline" style="white-space:pre-line;line-height:1.4;">${escapeHtml(t)}</div>
+        </div>
+      </label>`).join("") + `</div>`;
     html += `</div>`;
   }
 
@@ -558,14 +571,25 @@ function renderResults(data){
     <pre class="desc" id="descPreview"></pre>
   </div>`;
 
+  // 날짜별 기록
+  htmlRight += `<div class="resultCard">
+    <div class="resultHead"><h3>날짜별 기록</h3></div>
+    ${!isLong ? `<div class="hint" style="margin-bottom:8px;">숏츠는 위에서 제목·영상 내 제목을 하나씩 선택해야 기록돼요.</div>` : `<div class="hint" style="margin-bottom:8px;">롱폼은 제목·썸네일 1안·2안이 자동으로 함께 기록돼요.</div>`}
+    <div class="row">
+      <div><label>기록자 (선택)</label><input type="text" id="logAuthor" placeholder="이름"></div>
+    </div>
+    <button type="button" class="fileBtn" id="saveLogBtn" style="margin-top:8px;">💾 기록 저장</button>
+    <div class="hint" id="logSaveStatus"></div>
+  </div>`;
+
   // 해시태그 30개 (별도 리스트, 롱폼/숏츠 공통 — 설명글에는 안 들어감, 참고용)
   const ht30Text = (data.hashtags_30||[]).join(" ");
-  htmlRight += `<details class="resultCard"><summary><h3>해시태그 30개</h3></summary><div class="acc-body">`;
+  htmlRight += `<details class="resultCard" open><summary><h3>해시태그 30개</h3></summary><div class="acc-body">`;
   htmlRight += `<div style="text-align:right;margin-bottom:8px;"><button type="button" class="copyBtn" id="copyHt30">복사</button></div>`;
   htmlRight += `<pre class="desc">${escapeHtml(ht30Text)}</pre></div></details>`;
 
   // 번역 (영어/일본어) — YouTube Studio 언어 탭용
-  htmlRight += `<details class="resultCard">
+  htmlRight += `<details class="resultCard" open>
     <summary><h3>번역 (YouTube 언어 탭용)</h3></summary>
     <div class="acc-body">
     <div class="row">
@@ -615,6 +639,55 @@ function renderResults(data){
   const ht30El = document.getElementById("copyHt30");
   if(ht30El) ht30El.addEventListener("click", ()=>copyText(ht30El, ht30Text));
   document.getElementById("copyDesc").addEventListener("click", (e)=>copyText(e.target, buildDescription()));
+
+  const saveLogBtn = document.getElementById("saveLogBtn");
+  if(saveLogBtn) saveLogBtn.addEventListener("click", async ()=>{
+    const statusEl = document.getElementById("logSaveStatus");
+    const author = document.getElementById("logAuthor").value.trim();
+    const description = buildDescription();
+    const hashtags30 = data.hashtags_30 || [];
+
+    let record = { channel, contentType, author, description, hashtags30 };
+
+    if(isLong){
+      record.titles = (data.titles||[]).slice(0,2);
+      record.thumbnails = (data.thumbnails||[]).slice(0,2).map(t=>({ category:t.category, headline:t.headline, sub:t.sub||"" }));
+    } else {
+      const tChoice = document.querySelector('input[name="titleChoice"]:checked');
+      const oChoice = document.querySelector('input[name="onscreenChoice"]:checked');
+      if(!tChoice || !oChoice){
+        statusEl.textContent = "제목과 영상 내 제목을 각각 하나씩 선택해주세요.";
+        return;
+      }
+      record.titles = [ (data.titles||[])[+tChoice.value] ];
+      record.onscreenTitle = (data.onscreen_titles||[])[+oChoice.value];
+    }
+
+    if(isDemoMode){
+      statusEl.textContent = "🧪 데모 모드에서는 기록이 저장되지 않아요 (실제 생성 후 저장해주세요).";
+      return;
+    }
+
+    statusEl.textContent = "저장 중...";
+    saveLogBtn.disabled = true;
+    try{
+      const res = await fetch("/.netlify/functions/log", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(record)
+      });
+      const result = await res.json();
+      if(!res.ok || result.error){
+        statusEl.textContent = "저장 실패: " + (result.error || res.status);
+        return;
+      }
+      statusEl.textContent = "✅ 저장됐습니다 (" + result.record.date + ")";
+    }catch(e){
+      statusEl.textContent = "요청 실패: " + e.message;
+    }finally{
+      saveLogBtn.disabled = false;
+    }
+  });
 
   const openVBtn = document.getElementById("openVUrl");
   if(openVBtn) openVBtn.addEventListener("click", ()=>{
@@ -723,6 +796,67 @@ function renderResults(data){
 }
 document.getElementById("genBtn").addEventListener("click", generate);
 
+// ---- 날짜별 기록 보기 ----
+function renderLogList(records){
+  const listEl = document.getElementById("logViewList");
+  if(!records.length){
+    listEl.innerHTML = `<div class="empty">아직 저장된 기록이 없습니다.</div>`;
+    return;
+  }
+  const byDate = {};
+  records.forEach(r=>{
+    if(!byDate[r.date]) byDate[r.date] = [];
+    byDate[r.date].push(r);
+  });
+  const dates = Object.keys(byDate).sort().reverse();
+
+  listEl.innerHTML = dates.map(date => {
+    const items = byDate[date].map(r => {
+      const isLong = r.contentType === "롱폼";
+      let titleBlock;
+      if(isLong){
+        titleBlock = `<div style="font-size:12px;color:var(--muted);margin-top:4px;">제목 1안: ${escapeHtml(r.titles?.[0]||"")}</div>
+          <div style="font-size:12px;color:var(--muted);">제목 2안: ${escapeHtml(r.titles?.[1]||"")}</div>`;
+        if(r.thumbnails && r.thumbnails.length){
+          titleBlock += r.thumbnails.map((t,i)=>`<div style="font-size:12px;color:var(--muted);">썸네일 ${i+1}안: ${escapeHtml(t.headline)}${t.sub? " / "+escapeHtml(t.sub):""}</div>`).join("");
+        }
+      } else {
+        titleBlock = `<div style="font-size:12px;color:var(--muted);margin-top:4px;">선택 제목: ${escapeHtml(r.titles?.[0]||"")}</div>
+          <div style="font-size:12px;color:var(--muted);">영상 내 제목: ${escapeHtml((r.onscreenTitle||"").replace(/\n/g," / "))}</div>`;
+      }
+      return `<div class="typoItem" style="border-left-color:var(--sky);">
+        <div style="font-weight:700;font-size:13.5px;">${escapeHtml(r.channel)} · ${escapeHtml(r.contentType)} ${r.author? " · "+escapeHtml(r.author):""}</div>
+        ${titleBlock}
+        <button type="button" class="copyBtn" style="margin-top:6px;" onclick="this.nextElementSibling.style.display = this.nextElementSibling.style.display==='none'?'block':'none';">설명글 보기</button>
+        <pre class="desc" style="display:none;margin-top:6px;font-size:12px;">${escapeHtml(r.description||"")}</pre>
+      </div>`;
+    }).join("");
+    return `<div style="margin-bottom:14px;"><div style="font-weight:800;color:var(--red-dark);margin-bottom:6px;">${date}</div>${items}</div>`;
+  }).join("");
+}
+
+async function loadLog(){
+  const statusEl = document.getElementById("logViewStatus");
+  statusEl.textContent = "불러오는 중...";
+  try{
+    const res = await fetch("/.netlify/functions/log");
+    const result = await res.json();
+    if(!res.ok || result.error){
+      statusEl.textContent = "불러오기 실패: " + (result.error || res.status);
+      return;
+    }
+    statusEl.textContent = "";
+    renderLogList(result.records || []);
+  }catch(e){
+    statusEl.textContent = "요청 실패: " + e.message;
+  }
+}
+
+document.getElementById("refreshLogBtn").addEventListener("click", loadLog);
+document.getElementById("logViewerAcc").addEventListener("toggle", function(){
+  if(this.open) loadLog();
+});
+
 // ---- SRT 자막 변환 ----
 function parseTimecode(tc, fps){
   const m = tc.match(/^(\d{1,2}):(\d{2}):(\d{2})(?:([:,])(\d{2,3}))?$/);
@@ -801,6 +935,15 @@ function detectFps(text){
 
 let lastSrtEntries = null;
 
+let srtByLang = { ko: null, en: null, ja: null };
+let currentSrtLang = "ko";
+
+const srtDemoTranslations = {
+  en: ["Hello, I'm Kim Jin-oh.", "If you check social media or YouTube these days,"],
+  ja: ["こんにちは、キム・ジノです。", "最近インスタグラムやユーチューブを見ていると、"]
+};
+const srtLangLabel = { ko: "한국어", en: "영어", ja: "일본어" };
+
 document.getElementById("convertSrtBtn").addEventListener("click", ()=>{
   const text = document.getElementById("scriptText").value;
   const fpsSelect = document.getElementById("srtFps");
@@ -834,25 +977,13 @@ document.getElementById("convertSrtBtn").addEventListener("click", ()=>{
   }
 
   lastSrtEntries = entries;
+  srtByLang = { ko: srt, en: null, ja: null };
+  currentSrtLang = "ko";
   statusEl.textContent = detectNote || "변환 완료.";
-  document.getElementById("srtPreview").textContent = srt;
   resultBox.style.display = "block";
-
-  document.getElementById("copySrt").onclick = (e) => copyText(e.target, srt);
-  document.getElementById("downloadSrt").onclick = () => {
-    const blob = new Blob([srt], { type: "text/plain;charset=utf-8" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = "subtitle.srt";
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-  };
-
-  document.getElementById("srtTranslateResultBox").style.display = "none";
+  document.querySelectorAll("#srtLangTabs .tab").forEach(t=>t.classList.toggle("active", t.dataset.lang === "ko"));
   document.getElementById("srtTranslateStatus").textContent = "";
+  showSrtLang("ko");
 });
 
 function downloadSrtBlob(srtText, filename){
@@ -867,68 +998,69 @@ function downloadSrtBlob(srtText, filename){
   URL.revokeObjectURL(url);
 }
 
-const srtDemoTranslations = {
-  en: ["Hello, I'm Kim Jin-oh.", "If you check social media or YouTube these days,"],
-  ja: ["こんにちは、キム・ジノです。", "最近インスタグラムやユーチューブを見ていると、"]
-};
+function showSrtLang(lang){
+  currentSrtLang = lang;
+  const srt = srtByLang[lang];
+  document.getElementById("srtResultLabel").textContent = `SRT 결과 (${srtLangLabel[lang]})`;
+  document.getElementById("srtPreview").textContent = srt || "";
+  document.getElementById("copySrt").onclick = (e) => copyText(e.target, srtByLang[lang] || "");
+  document.getElementById("downloadSrt").onclick = () => downloadSrtBlob(srtByLang[lang] || "", `subtitle_${lang}.srt`);
+}
 
-async function runSrtTranslate(targetLang){
+async function ensureSrtLang(lang){
   const statusEl = document.getElementById("srtTranslateStatus");
-  const resultBox = document.getElementById("srtTranslateResultBox");
-  const label = { en: "🇺🇸 영어 SRT 결과", ja: "🇯🇵 일본어 SRT 결과" }[targetLang];
 
+  if(srtByLang[lang]){
+    showSrtLang(lang);
+    statusEl.textContent = "";
+    return;
+  }
   if(!lastSrtEntries || !lastSrtEntries.length){
     statusEl.textContent = "먼저 위에서 SRT로 변환해주세요.";
     return;
   }
 
-  document.getElementById("srtTranslateLabel").textContent = label;
-
   if(isDemoMode){
     statusEl.textContent = "🧪 데모 번역입니다 — 실제 번역이 아닌 샘플입니다.";
-    const demoTexts = lastSrtEntries.map((e,i) => srtDemoTranslations[targetLang][i % srtDemoTranslations[targetLang].length]);
+    const demoTexts = lastSrtEntries.map((e,i) => srtDemoTranslations[lang][i % srtDemoTranslations[lang].length]);
     const translatedEntries = lastSrtEntries.map((e,i) => ({ start: e.start, end: e.end, textLines: [demoTexts[i]] }));
-    const translatedSrt = buildSrtFromEntries(translatedEntries);
-    document.getElementById("srtTranslatedPreview").textContent = translatedSrt;
-    resultBox.style.display = "block";
-    document.getElementById("copySrtTranslated").onclick = (e) => copyText(e.target, translatedSrt);
-    document.getElementById("downloadSrtTranslated").onclick = () => downloadSrtBlob(translatedSrt, `subtitle_${targetLang}.srt`);
+    srtByLang[lang] = buildSrtFromEntries(translatedEntries);
+    showSrtLang(lang);
     return;
   }
 
   statusEl.textContent = "번역 중... (자막 줄이 많으면 시간이 좀 걸려요)";
-  document.getElementById("translateSrtEnBtn").disabled = true;
-  document.getElementById("translateSrtJaBtn").disabled = true;
+  document.querySelectorAll("#srtLangTabs .tab").forEach(t=>t.style.pointerEvents = "none");
   try{
     const texts = lastSrtEntries.map(e => e.textLines.join("\n"));
     const res = await fetch("/.netlify/functions/translate-srt", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ texts, targetLang })
+      body: JSON.stringify({ texts, targetLang: lang })
     });
     const result = await res.json();
     if(!res.ok || result.error){
       statusEl.textContent = "번역 실패: " + (result.error || res.status);
-      resultBox.style.display = "none";
       return;
     }
     const translatedEntries = lastSrtEntries.map((e, i) => ({ start: e.start, end: e.end, textLines: [result.texts[i]] }));
-    const translatedSrt = buildSrtFromEntries(translatedEntries);
-    document.getElementById("srtTranslatedPreview").textContent = translatedSrt;
-    resultBox.style.display = "block";
+    srtByLang[lang] = buildSrtFromEntries(translatedEntries);
     statusEl.textContent = "번역 완료.";
-    document.getElementById("copySrtTranslated").onclick = (e) => copyText(e.target, translatedSrt);
-    document.getElementById("downloadSrtTranslated").onclick = () => downloadSrtBlob(translatedSrt, `subtitle_${targetLang}.srt`);
+    showSrtLang(lang);
   }catch(e){
     statusEl.textContent = "요청 실패: " + e.message;
   }finally{
-    document.getElementById("translateSrtEnBtn").disabled = false;
-    document.getElementById("translateSrtJaBtn").disabled = false;
+    document.querySelectorAll("#srtLangTabs .tab").forEach(t=>t.style.pointerEvents = "");
   }
 }
 
-document.getElementById("translateSrtEnBtn").addEventListener("click", () => runSrtTranslate("en"));
-document.getElementById("translateSrtJaBtn").addEventListener("click", () => runSrtTranslate("ja"));
+document.querySelectorAll("#srtLangTabs .tab").forEach(tab=>{
+  tab.addEventListener("click", ()=>{
+    document.querySelectorAll("#srtLangTabs .tab").forEach(t=>t.classList.remove("active"));
+    tab.classList.add("active");
+    ensureSrtLang(tab.dataset.lang);
+  });
+});
 
 function buildDemoData(){
   const isLong = contentType === "롱폼";

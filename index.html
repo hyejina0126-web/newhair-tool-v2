@@ -356,8 +356,13 @@ function renderResults(data){
     <div class="resultHead"><h3>설명글 (자동 검색 결과 확인/수정)</h3></div>
 
     <div class="autoField">
-      <div class="label">도입부 ${data.seo_keyword ? `<span class="foundTag ok" style="margin-left:6px;">SEO 키워드: ${escapeHtml(data.seo_keyword)}</span>` : ""}</div>
+      <div class="label">도입부 ${(data.seo_keywords||[]).length ? (data.seo_keywords||[]).map(k=>`<span class="foundTag ok" style="margin-left:4px;">SEO: ${escapeHtml(k)}</span>`).join("") : ""}</div>
       <textarea id="descIntro" style="min-height:70px;">${escapeHtml(data.description_intro)}</textarea>
+      ${(data.geo_sentences||[]).length ? `
+      <div class="hint" style="margin-top:6px;">
+        <span class="foundTag ok" style="margin-right:4px;">GEO 인용 문장</span>
+        ${(data.geo_sentences||[]).map(s=>`<div style="margin-top:4px;color:var(--ink);font-size:12.5px;">"${escapeHtml(s)}"</div>`).join("")}
+      </div>` : ""}
     </div>
 
     <div class="autoField">
@@ -494,7 +499,11 @@ function buildDemoData(){
     ],
     description_intro: "탈모는 머리카락이 많이 빠질 때 시작되는 게 아니에요.\n오히려 더 중요한 조기 신호는 머리카락이 가늘어지는 변화예요.\n미용실에서 \"예전보다 머리숱이 가늘어졌네요\"라는 말을 들어보신 적 있으신가요?\n이 말을 그냥 넘기면 안 되는 이유가 있습니다.\n아침마다 볼륨이 죽고 힘없이 처지는 머리도 위험 신호일 수 있어요.\n이번 영상에서는 연모화가 왜 탈모의 골든타임 신호인지 알아봅니다.\n그리고 집에서 바로 실천할 수 있는 관리법도 함께 정리해드릴게요.\n약물치료부터 단백질 섭취, 비타민D·철분·아연 챙기기, 두피 마사지까지 가성비 좋은 루틴 4가지를 담았습니다.\n탈모는 많이 빠진 뒤가 아니라 가늘어지기 시작할 때 잡아야 해요.\n(이 문단은 데모용 샘플입니다 — 실제로는 대본 내용을 분석해서 작성됩니다)",
     hashtags_30: Array.from({length:30}, (_,i)=>`#탈모샘플${i+1}`),
-    seo_keyword: "탈모 골든타임",
+    seo_keywords: ["탈모 골든타임", "연모화", "탈모 초기증상", "머리카락 가늘어짐", "탈모 자가진단"],
+    geo_sentences: [
+      "연모화는 머리카락이 점점 가늘어지는 현상으로, 탈모 초기에 나타나는 대표적인 신호입니다.",
+      "탈모는 머리카락이 많이 빠진 뒤가 아니라 가늘어지기 시작할 때 치료를 시작해야 효과가 좋습니다."
+    ],
     defaultTag: "ㅣ뉴헤어ㅣ모발건강",
     video: { found: true, title: "탈모 정기검사의 중요성!ㅣ뉴헤어ㅣ모발건강", url: "https://www.youtube.com/watch?v=SDnzLcPU1Gw" },
     blog: { found: true, title: "백발은 다시 검게 만들 수 있을까? 원인부터 재흑화 가능성까지", url: "https://newhairps.com/nblog2/can-gray-hair-turn-black-again-causes-and-the-possibility-of-repigmentation" },

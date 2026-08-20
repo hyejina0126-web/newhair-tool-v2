@@ -157,6 +157,7 @@
   </div>
 
   <button class="genBtn" id="genBtn">🎬 생성하기 (오타체크·제목·썸네일·설명글 자동)</button>
+  <button class="genBtn" id="demoBtn" style="margin-top:8px;background:linear-gradient(180deg,#3a3843,#242229);box-shadow:0 4px 0 #17161c;">🧪 데모로 화면만 미리보기 (API 사용 안 함)</button>
   <div id="errBox"></div>
   <div id="loadingBox"></div>
 
@@ -409,6 +410,47 @@ function renderResults(data){
 }
 
 document.getElementById("genBtn").addEventListener("click", generate);
+
+function buildDemoData(){
+  const isLong = contentType === "롱폼";
+  const base = {
+    typos: [
+      { before: "머릿결이", after: "머리결이", note: "표준 표기 예시" },
+      { before: "안됩니다", after: "안 됩니다", note: "띄어쓰기 예시" }
+    ],
+    titles: [
+      "탈모 정기검사의 중요성!ㅣ뉴헤어ㅣ모발건강",
+      "연모화, 탈모의 골든타임 신호",
+      "머리카락 가늘어짐 방치하면 안 되는 이유"
+    ],
+    description_intro: "탈모는 머리카락이 많이 빠질 때 시작되는 게 아닙니다. 오히려 더 중요한 조기 신호는 머리카락이 가늘어지는 변화입니다. (이 문단은 데모용 샘플입니다)",
+    hashtags_30: Array.from({length:30}, (_,i)=>`#탈모샘플${i+1}`),
+    defaultTag: "ㅣ뉴헤어ㅣ모발건강",
+    video: { found: true, title: "탈모 정기검사의 중요성!ㅣ뉴헤어ㅣ모발건강", url: "https://www.youtube.com/watch?v=SDnzLcPU1Gw" },
+    blog: { found: true, title: "탈모 자가 진단법과 검사 결과 해석법 총정리", url: "https://newhairps.com/nblog2/sample-post" },
+    references: { found: true, text: "참고문헌\n1. 데모용 샘플 참고문헌입니다.\n2. 실제 생성 시 블로그 원문에서 자동으로 가져옵니다." }
+  };
+  if(isLong){
+    base.thumbnails = [
+      { category: "탈모치료 정보", headline: "연모화 골든타임", sub: "지금 놓치면 늦어요" },
+      { category: "모발이식 정보", headline: "이식 전 체크리스트", sub: "" },
+      { category: "탈모 팩트체크", headline: "미녹시딜 진짜 효과", sub: "전문의가 답한다" }
+    ];
+  } else {
+    base.onscreen_titles = [
+      "수술 날짜부터 잡으면\n일단 의심하세요",
+      "머리카락이 가늘어졌다면\n지금이 골든타임",
+      "미용실에서 이 말 들었다면\n바로 검사받으세요"
+    ];
+    base.hashtags_inline = base.hashtags_30.slice(0, 8);
+  }
+  return base;
+}
+
+document.getElementById("demoBtn").addEventListener("click", ()=>{
+  document.getElementById("errBox").innerHTML = `<div class="err" style="background:#1a2e3a;border-color:var(--teal);color:#9fe6da;">🧪 데모 데이터입니다 — 실제 대본 분석이 아닌 화면 레이아웃 확인용 샘플입니다.</div>`;
+  renderResults(buildDemoData());
+});
 </script>
 </body>
 </html>

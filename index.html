@@ -280,9 +280,9 @@ function buildDescription(){
   const refText = document.getElementById("refText").value.trim();
 
   const linkLines = [];
-  if(vTitle && vUrl) linkLines.push(`🎬 ${vTitle}${tagSuffix} ${vUrl}`);
-  if(bTitle && bUrl) linkLines.push(`📝 ${bTitle} ${bUrl}`);
-  if(linkLines.length){ lines.push(""); lines.push(...linkLines); }
+  if(vTitle && vUrl) linkLines.push(`🎬 ${vTitle}${tagSuffix}\n${vUrl}`);
+  if(bTitle && bUrl) linkLines.push(`📝 ${bTitle}\n${bUrl}`);
+  if(linkLines.length){ lines.push(""); lines.push(linkLines.join("\n\n")); }
 
   if(refText){ lines.push(""); lines.push(refText); }
 
@@ -382,45 +382,23 @@ function renderResults(data){
       <textarea id="hashtagsInline" style="min-height:50px;font-size:12px;">${escapeHtml((data.hashtags_inline||[]).join(" "))}</textarea>
     </div>` : ""}
 
-    <div class="resultHead" style="margin-top:14px;"><h3>최종 설명글 미리보기</h3><button class="copyBtn" id="copyDesc">복사</button></div>
+    <div class="resultHead" style="margin-top:14px;"><h3>설명글 (복붙용)</h3><button class="copyBtn" id="copyDesc">복사</button></div>
     <pre class="desc" id="descPreview"></pre>
   </div>`;
 
-  // 해시태그 30개 (별도 리스트, 롱폼/숏츠 공통)
+  // 해시태그 30개 (별도 리스트, 롱폼/숏츠 공통 — 설명글에는 안 들어감, 참고용)
   const ht30Text = (data.hashtags_30||[]).join(" ");
   html += `<div class="resultCard"><div class="resultHead"><h3>해시태그 30개</h3><button class="copyBtn" id="copyHt30">복사</button></div>`;
   html += `<pre class="desc">${escapeHtml(ht30Text)}</pre></div>`;
 
-  // 전체 한 번에 복사
-  html += `<div class="resultCard" style="border-color:var(--gold);"><div class="resultHead"><h3>전체 결과 한 번에 복사</h3><button class="copyBtn" id="copyAll">전체 복사</button></div>
-    <pre class="desc" id="allPreview"></pre>
-  </div>`;
-
   resultsBox.innerHTML = html;
 
-  function buildAllText(){
-    const parts = [];
-    parts.push("■ 제목 추천\n" + titlesText);
-    if(isLong){
-      parts.push("■ 썸네일 추천\n" + (data.thumbnails||[]).map(t=>`[${t.category}] ${t.headline}${t.sub?" - "+t.sub:""}`).join("\n"));
-    } else {
-      parts.push("■ 영상 내 제목 추천\n" + otText);
-    }
-    parts.push("■ 설명글\n" + buildDescription());
-    parts.push("■ 해시태그 30개\n" + ht30Text);
-    return parts.join("\n\n");
-  }
-  function refreshAllPreview(){
-    document.getElementById("allPreview").textContent = buildAllText();
-  }
-
   ["descIntro","vTitle","vUrl","bTitle","bUrl","tagSuffix","refText"].forEach(id=>{
-    document.getElementById(id).addEventListener("input", ()=>{ refreshDescPreview(); refreshAllPreview(); });
+    document.getElementById(id).addEventListener("input", refreshDescPreview);
   });
   const inlineHtEl = document.getElementById("hashtagsInline");
-  if(inlineHtEl) inlineHtEl.addEventListener("input", ()=>{ refreshDescPreview(); refreshAllPreview(); });
+  if(inlineHtEl) inlineHtEl.addEventListener("input", refreshDescPreview);
   refreshDescPreview();
-  refreshAllPreview();
 
   const titlesEl = document.getElementById("copyTitles");
   if(titlesEl) titlesEl.addEventListener("click", ()=>copyText(titlesEl, titlesText));
@@ -429,7 +407,6 @@ function renderResults(data){
   const ht30El = document.getElementById("copyHt30");
   if(ht30El) ht30El.addEventListener("click", ()=>copyText(ht30El, ht30Text));
   document.getElementById("copyDesc").addEventListener("click", (e)=>copyText(e.target, buildDescription()));
-  document.getElementById("copyAll").addEventListener("click", (e)=>copyText(e.target, buildAllText()));
 }
 
 document.getElementById("genBtn").addEventListener("click", generate);
@@ -446,7 +423,7 @@ function buildDemoData(){
       "연모화, 탈모의 골든타임 신호",
       "머리카락 가늘어짐 방치하면 안 되는 이유"
     ],
-    description_intro: "탈모는 머리카락이 많이 빠질 때 시작되는 게 아닙니다. 오히려 더 중요한 조기 신호는 머리카락이 가늘어지는 변화입니다. (이 문단은 데모용 샘플입니다)",
+    description_intro: "탈모는 머리카락이 많이 빠질 때 시작되는 게 아니에요. 오히려 더 중요한 조기 신호는 머리카락이 가늘어지는 변화예요. 미용실에서 \"예전보다 머리숱이 가늘어졌네요\"라는 말을 들어보신 적 있으신가요? 이 말을 그냥 넘기면 안 되는 이유가 있습니다. 아침마다 볼륨이 죽고 힘없이 처지는 머리도 위험 신호일 수 있어요. 이번 영상에서는 연모화가 왜 탈모의 골든타임 신호인지 알아봅니다. 그리고 집에서 바로 실천할 수 있는 관리법도 함께 정리해드릴게요. 약물치료부터 단백질 섭취, 비타민D·철분·아연 챙기기, 두피 마사지까지 가성비 좋은 루틴 4가지를 담았습니다. 탈모는 많이 빠진 뒤가 아니라 가늘어지기 시작할 때 잡아야 해요. (이 문단은 데모용 샘플입니다 — 실제로는 대본 내용을 분석해서 작성됩니다)",
     hashtags_30: Array.from({length:30}, (_,i)=>`#탈모샘플${i+1}`),
     defaultTag: "ㅣ뉴헤어ㅣ모발건강",
     video: { found: true, title: "탈모 정기검사의 중요성!ㅣ뉴헤어ㅣ모발건강", url: "https://www.youtube.com/watch?v=SDnzLcPU1Gw" },

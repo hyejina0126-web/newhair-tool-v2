@@ -5,11 +5,33 @@
 const UA = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36";
 
 function extractTitle(html) {
+  // 1. JSON-LD 구조화 데이터의 headline (뉴스 기사에 흔히 있고 보통 전체 제목)
+  const ldMatches = html.match(/<script[^>]*type=["']application\/ld\+json["'][^>]*>([\s\S]*?)<\/script>/gi) || [];
+  for (const block of ldMatches) {
+    const jsonText = block.replace(/<script[^>]*>/i, "").replace(/<\/script>/i, "");
+    try {
+      const parsed = JSON.parse(jsonText);
+      const items = Array.isArray(parsed) ? parsed : [parsed];
+      for (const item of items) {
+        if (item && typeof item.headline === "string" && item.headline.trim()) {
+          return decodeEntities(item.headline.trim());
+        }
+      }
+    } catch (e) { /* JSON-LD 파싱 실패 시 다음 방법으로 */ }
+  }
+
+  // 2. <title> 태그 (보통 og:title보다 전체 제목을 담고 있음)
+  const t = html.match(/<title[^>]*>([^<]+)<\/title>/i);
+  if (t && t[1]) {
+    const cleaned = t[1].trim().replace(/\s*[|\-–]\s*[^|\-–]{1,30}$/, ""); // "제목 - 사이트명" 꼬리표 제거 시도
+    if (cleaned) return decodeEntities(cleaned);
+  }
+
+  // 3. og:title (최후 수단, 잘려있을 수 있음)
   const og = html.match(/<meta[^>]+property=["']og:title["'][^>]+content=["']([^"']+)["']/i)
           || html.match(/<meta[^>]+content=["']([^"']+)["'][^>]+property=["']og:title["']/i);
   if (og && og[1]) return decodeEntities(og[1].trim());
-  const t = html.match(/<title[^>]*>([^<]+)<\/title>/i);
-  if (t && t[1]) return decodeEntities(t[1].trim());
+
   return null;
 }
 

@@ -391,14 +391,36 @@ function renderResults(data){
   html += `<div class="resultCard"><div class="resultHead"><h3>해시태그 30개</h3><button class="copyBtn" id="copyHt30">복사</button></div>`;
   html += `<pre class="desc">${escapeHtml(ht30Text)}</pre></div>`;
 
+  // 전체 한 번에 복사
+  html += `<div class="resultCard" style="border-color:var(--gold);"><div class="resultHead"><h3>전체 결과 한 번에 복사</h3><button class="copyBtn" id="copyAll">전체 복사</button></div>
+    <pre class="desc" id="allPreview"></pre>
+  </div>`;
+
   resultsBox.innerHTML = html;
 
+  function buildAllText(){
+    const parts = [];
+    parts.push("■ 제목 추천\n" + titlesText);
+    if(isLong){
+      parts.push("■ 썸네일 추천\n" + (data.thumbnails||[]).map(t=>`[${t.category}] ${t.headline}${t.sub?" - "+t.sub:""}`).join("\n"));
+    } else {
+      parts.push("■ 영상 내 제목 추천\n" + otText);
+    }
+    parts.push("■ 설명글\n" + buildDescription());
+    parts.push("■ 해시태그 30개\n" + ht30Text);
+    return parts.join("\n\n");
+  }
+  function refreshAllPreview(){
+    document.getElementById("allPreview").textContent = buildAllText();
+  }
+
   ["descIntro","vTitle","vUrl","bTitle","bUrl","tagSuffix","refText"].forEach(id=>{
-    document.getElementById(id).addEventListener("input", refreshDescPreview);
+    document.getElementById(id).addEventListener("input", ()=>{ refreshDescPreview(); refreshAllPreview(); });
   });
   const inlineHtEl = document.getElementById("hashtagsInline");
-  if(inlineHtEl) inlineHtEl.addEventListener("input", refreshDescPreview);
+  if(inlineHtEl) inlineHtEl.addEventListener("input", ()=>{ refreshDescPreview(); refreshAllPreview(); });
   refreshDescPreview();
+  refreshAllPreview();
 
   const titlesEl = document.getElementById("copyTitles");
   if(titlesEl) titlesEl.addEventListener("click", ()=>copyText(titlesEl, titlesText));
@@ -407,6 +429,7 @@ function renderResults(data){
   const ht30El = document.getElementById("copyHt30");
   if(ht30El) ht30El.addEventListener("click", ()=>copyText(ht30El, ht30Text));
   document.getElementById("copyDesc").addEventListener("click", (e)=>copyText(e.target, buildDescription()));
+  document.getElementById("copyAll").addEventListener("click", (e)=>copyText(e.target, buildAllText()));
 }
 
 document.getElementById("genBtn").addEventListener("click", generate);
@@ -432,9 +455,9 @@ function buildDemoData(){
   };
   if(isLong){
     base.thumbnails = [
-      { category: "탈모치료 정보", headline: "연모화 골든타임", sub: "지금 놓치면 늦어요" },
-      { category: "모발이식 정보", headline: "이식 전 체크리스트", sub: "" },
-      { category: "탈모 팩트체크", headline: "미녹시딜 진짜 효과", sub: "전문의가 답한다" }
+      { category: "탈모치료 정보", headline: "연모화 놓치면 골든타임 끝", sub: "지금 확인 안 하면 늦습니다" },
+      { category: "모발이식 정보", headline: "이식 전 반드시 체크할 4가지", sub: "" },
+      { category: "탈모 팩트체크", headline: "미녹시딜 진짜 효과 있을까", sub: "전문의가 직접 답한다" }
     ];
   } else {
     base.onscreen_titles = [

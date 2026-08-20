@@ -388,9 +388,11 @@ function renderResults(data){
         <div><input type="text" id="aTitle" placeholder="기사 제목"></div>
         <div style="display:flex;gap:6px;">
           <input type="url" id="aUrl" placeholder="기사 URL" style="flex:1;">
+          <button type="button" class="iconbtn" id="fetchATitle" title="URL에서 제목 가져오기">⬇️</button>
           <button type="button" class="iconbtn" id="openAUrl" title="새 탭에서 열기">🔗</button>
         </div>
       </div>
+      <div class="hint" id="fetchATitleStatus"></div>
     </div>
 
     <div class="autoField">
@@ -449,6 +451,30 @@ function renderResults(data){
   if(openABtn) openABtn.addEventListener("click", ()=>{
     const u = document.getElementById("aUrl").value.trim();
     if(u) window.open(u, "_blank", "noopener");
+  });
+
+  const fetchABtn = document.getElementById("fetchATitle");
+  if(fetchABtn) fetchABtn.addEventListener("click", async ()=>{
+    const u = document.getElementById("aUrl").value.trim();
+    const statusEl = document.getElementById("fetchATitleStatus");
+    if(!u){ statusEl.textContent = "URL을 먼저 입력해주세요."; return; }
+    statusEl.textContent = "제목 가져오는 중...";
+    fetchABtn.disabled = true;
+    try{
+      const res = await fetch("/.netlify/functions/fetch-title?url=" + encodeURIComponent(u));
+      const data = await res.json();
+      if(data.title){
+        document.getElementById("aTitle").value = data.title;
+        refreshDescPreview();
+        statusEl.textContent = "제목을 가져왔습니다. 확인 후 사용하세요.";
+      } else {
+        statusEl.textContent = data.error || "제목을 가져오지 못했습니다. 직접 입력해주세요.";
+      }
+    }catch(e){
+      statusEl.textContent = "요청 실패: " + e.message;
+    }finally{
+      fetchABtn.disabled = false;
+    }
   });
 }
 

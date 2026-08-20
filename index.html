@@ -279,11 +279,14 @@ function buildDescription(){
   const vUrl = document.getElementById("vUrl").value.trim();
   const bTitle = document.getElementById("bTitle").value.trim();
   const bUrl = document.getElementById("bUrl").value.trim();
+  const aTitle = document.getElementById("aTitle") ? document.getElementById("aTitle").value.trim() : "";
+  const aUrl = document.getElementById("aUrl") ? document.getElementById("aUrl").value.trim() : "";
   const refText = document.getElementById("refText").value.trim();
 
   const linkLines = [];
   if(vTitle && vUrl) linkLines.push(`🎬 ${vTitle}${tagSuffix}\n${vUrl}`);
   if(bTitle && bUrl) linkLines.push(`📝 ${bTitle}\n${bUrl}`);
+  if(aTitle && aUrl) linkLines.push(`📰 ${aTitle}\n${aUrl}`);
   if(linkLines.length){ lines.push(""); lines.push(linkLines.join("\n\n")); }
 
   if(refText){ lines.push(""); lines.push(refText); }
@@ -380,6 +383,17 @@ function renderResults(data){
     </div>
 
     <div class="autoField">
+      <div class="label">📰 참고 기사 <span class="foundTag no">직접 입력 (선택)</span></div>
+      <div class="row">
+        <div><input type="text" id="aTitle" placeholder="기사 제목"></div>
+        <div style="display:flex;gap:6px;">
+          <input type="url" id="aUrl" placeholder="기사 URL" style="flex:1;">
+          <button type="button" class="iconbtn" id="openAUrl" title="새 탭에서 열기">🔗</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="autoField">
       <div class="label">태그 표기</div>
       <input type="text" id="tagSuffix" value="${escapeHtml(data.defaultTag)}">
     </div>
@@ -406,7 +420,7 @@ function renderResults(data){
 
   resultsBox.innerHTML = html;
 
-  ["descIntro","vTitle","vUrl","bTitle","bUrl","tagSuffix","refText"].forEach(id=>{
+  ["descIntro","vTitle","vUrl","bTitle","bUrl","aTitle","aUrl","tagSuffix","refText"].forEach(id=>{
     document.getElementById(id).addEventListener("input", refreshDescPreview);
   });
   const inlineHtEl = document.getElementById("hashtagsInline");
@@ -431,6 +445,11 @@ function renderResults(data){
     const u = document.getElementById("bUrl").value.trim();
     if(u) window.open(u, "_blank", "noopener");
   });
+  const openABtn = document.getElementById("openAUrl");
+  if(openABtn) openABtn.addEventListener("click", ()=>{
+    const u = document.getElementById("aUrl").value.trim();
+    if(u) window.open(u, "_blank", "noopener");
+  });
 }
 
 document.getElementById("genBtn").addEventListener("click", generate);
@@ -451,7 +470,7 @@ function buildDemoData(){
     hashtags_30: Array.from({length:30}, (_,i)=>`#탈모샘플${i+1}`),
     defaultTag: "ㅣ뉴헤어ㅣ모발건강",
     video: { found: true, title: "탈모 정기검사의 중요성!ㅣ뉴헤어ㅣ모발건강", url: "https://www.youtube.com/watch?v=SDnzLcPU1Gw" },
-    blog: { found: true, title: "탈모 자가 진단법과 검사 결과 해석법 총정리", url: "https://newhairps.com/nblog2/sample-post" },
+    blog: { found: true, title: "백발은 다시 검게 만들 수 있을까? 원인부터 재흑화 가능성까지", url: "https://newhairps.com/nblog2/can-gray-hair-turn-black-again-causes-and-the-possibility-of-repigmentation" },
     references: { found: true, text: "참고문헌\n1. 데모용 샘플 참고문헌입니다.\n2. 실제 생성 시 블로그 원문에서 자동으로 가져옵니다." }
   };
   if(isLong){

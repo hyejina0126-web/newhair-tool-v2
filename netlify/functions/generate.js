@@ -1,11 +1,12 @@
 // netlify/functions/generate.js
 // 필요한 환경 변수:
-//   ANTHROPIC_API_KEY   - console.anthropic.com
-//   YOUTUBE_API_KEY     - console.cloud.google.com (YouTube Data API v3 활성화)
-//   NAVER_CLIENT_ID     - developers.naver.com
-//   NAVER_CLIENT_SECRET - developers.naver.com
-//   GOOGLE_CSE_KEY      - console.cloud.google.com (Custom Search API 활성화)
-//   GOOGLE_CSE_CX       - programmablesearchengine.google.com (검색엔진 ID, "전체 웹 검색"으로 설정)
+//   ANTHROPIC_API_KEY - console.anthropic.com
+//   YOUTUBE_API_KEY   - console.cloud.google.com (YouTube Data API v3 활성화)
+//   GOOGLE_CSE_KEY    - console.cloud.google.com (Custom Search API 활성화, nblog2 자동검색용)
+//   GOOGLE_CSE_CX     - programmablesearchengine.google.com (검색엔진 ID, "전체 웹 검색"으로 설정)
+//
+// 네이버블로그(blog.naver.com/newhair_blog)는 신규 검색 API 발급이 막혀 자동검색 대상에서 제외.
+// 필요할 때는 결과 화면의 블로그 제목/URL 칸에 직접 입력하면 됨 (참고문헌 자동추출은 그대로 동작).
 
 const CHANNELS = {
   "뉴헤어": {
@@ -21,7 +22,6 @@ const CHANNELS = {
 };
 
 const NBLOG2_SITE = "newhairps.com/nblog2";
-const NAVER_BLOG_ID = "newhair_blog";
 
 const UA = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36";
 
@@ -111,17 +111,6 @@ async function searchChannelVideo(channelInfo, keyword, ytKey) {
   return { found: true, title: stripTags(top.snippet.title), url: `https://www.youtube.com/watch?v=${top.id.videoId}` };
 }
 
-async function searchNaverBlog(keyword, clientId, clientSecret) {
-  if (!clientId || !clientSecret) return null;
-  const url = `https://openapi.naver.com/v1/search/blog.json?display=15&sort=sim&query=${encodeURIComponent(keyword)}`;
-  const res = await fetch(url, { headers: { "X-Naver-Client-Id": clientId, "X-Naver-Client-Secret": clientSecret } });
-  if (!res.ok) return null;
-  const data = await res.json();
-  const match = (data.items || []).find(it => it.link.includes(`blog.naver.com/${NAVER_BLOG_ID}`));
-  if (!match) return null;
-  return { title: stripTags(match.title), url: match.link.split("?")[0] };
-}
-
 async function searchGoogleCSE(keyword, key, cx) {
   if (!key || !cx) return null;
   const q = `site:${NBLOG2_SITE} ${keyword}`;
@@ -134,21 +123,11 @@ async function searchGoogleCSE(keyword, key, cx) {
   return { title: items[0].title, url: items[0].link };
 }
 
-function keywordScore(title, keywords) {
-  if (!title) return 0;
-  return keywords.reduce((n, k) => n + (title.includes(k) ? 1 : 0), 0);
-}
-
 async function pickBestBlog(keywords, env) {
   const query = keywords.slice(0, 2).join(" ");
-  const [naver, cse] = await Promise.all([
-    searchNaverBlog(query, env.NAVER_CLIENT_ID, env.NAVER_CLIENT_SECRET).catch(() => null),
-    searchGoogleCSE(query, env.GOOGLE_CSE_KEY, env.GOOGLE_CSE_CX).catch(() => null)
-  ]);
-  const candidates = [naver, cse].filter(Boolean);
-  if (candidates.length === 0) return { found: false };
-  candidates.sort((a, b) => keywordScore(b.title, keywords) - keywordScore(a.title, keywords));
-  return { found: true, ...candidates[0] };
+  const cse = await searchGoogleCSE(query, env.GOOGLE_CSE_KEY, env.GOOGLE_CSE_CX).catch(() => null);
+  if (!cse) return { found: false };
+  return { found: true, ...cse };
 }
 
 async function extractReferences(blogUrl) {

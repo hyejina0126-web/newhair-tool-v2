@@ -38,7 +38,8 @@ async function claudeAnalyze(apiKey, channel, contentType, script) {
   const isLong = contentType === "롱폼";
   let schemaFields = `- "typos": [{"before":"오타/오류 표현","after":"수정 표현","note":"이유(짧게)"}] (최대 8개, 없으면 빈 배열)
 - "titles": ["제목1","제목2","제목3"] (3개, 채널 태그 붙이지 말고 순수 제목만)
-- "description_intro": "설명글 도입부 5~10문장. 정중하되(-습니다/-요 혼용 가능) 딱딱하지 않고 친근하게 말하듯 자연스러운 톤, 어그로성 표현 금지, 영상 핵심 내용을 충분히 설명. 가독성을 위해 각 문장이 끝날 때마다 줄바꿈(\\n)을 넣어서 한 줄에 한 문장씩 작성"
+- "description_intro": "설명글 도입부 5~10문장. 정중하되(-습니다/-요 혼용 가능) 딱딱하지 않고 친근하게 말하듯 자연스러운 톤, 어그로성 표현 금지, 영상 핵심 내용을 충분히 설명. 가독성을 위해 각 문장이 끝날 때마다 줄바꿈(\\n)을 넣어서 한 줄에 한 문장씩 작성. [SEO] 핵심 키워드(주제어)를 첫 1~2문장 안에 자연스럽게 포함시켜 유튜브 '더보기' 접히기 전 구간(약 100~150자)에서 주제가 드러나게 작성. [GEO] AI 검색·요약 엔진이 인용하기 좋도록, 최소 1~2문장은 '무엇은 무엇이다/무엇 때문에 무엇이 일어난다' 같은 명확한 사실 진술 형태의 문장으로 포함"
+- "seo_keyword": "이 영상의 핵심 SEO 키워드 1개 (검색될 만한 대표 단어/구, 제목·설명글 전반에 자연스럽게 반영된 것과 동일해야 함)"
 - "search_keywords": ["키워드1","키워드2","키워드3"] (관련 영상/블로그를 검색할 핵심 키워드 2~3개, 명사 위주 짧은 구)
 - "hashtags_30": ["#해시태그1","#해시태그2", ... ] (탈모/모발이식 관련 해시태그 정확히 30개, "#"을 붙여서, 채널·영상 내용과 관련된 것 위주)`;
 
@@ -58,7 +59,7 @@ async function claudeAnalyze(apiKey, channel, contentType, script) {
 아래 JSON 스키마로만 응답하세요. 마크다운, 코드블록, 설명 문장 없이 순수 JSON 객체 하나만 출력합니다.
 ${schemaFields}
 
-제목 스타일은 궁금증을 자극하는 후킹 문구, 숫자·경고·긴급성 표현을 적극 활용해 클릭을 유도하는 자극적인 톤으로 작성하되(예: "머리카락이 가늘어지고 있다면 지금 당장 확인해야 하는 이유", "이 신호를 놓치면 탈모 골든타임이 끝나버립니다"), 15~30자 내외로 너무 짧게 압축하지 말고 충분히 설명이 담기게 작성합니다. 대본 내용과 무관한 허위·과장은 넣지 않습니다.
+제목 스타일은 궁금증을 자극하는 후킹 문구, 숫자·경고·긴급성 표현을 적극 활용해 클릭을 유도하는 자극적인 톤으로 작성하되(예: "머리카락이 가늘어지고 있다면 지금 당장 확인해야 하는 이유", "이 신호를 놓치면 탈모 골든타임이 끝나버립니다"), 15~30자 내외로 너무 짧게 압축하지 말고 충분히 설명이 담기게 작성합니다. [SEO] 3개 제목 중 최소 1개 이상에는 핵심 SEO 키워드(seo_keyword)를 자연스럽게 포함시킵니다. 대본 내용과 무관한 허위·과장은 넣지 않습니다.
 설명글 도입부와 검색 키워드는 대본에 실제로 나온 내용에 근거해야 하며 지어내지 않습니다.`;
 
   const res = await fetch("https://api.anthropic.com/v1/messages", {
@@ -208,6 +209,7 @@ exports.handler = async (event) => {
         thumbnails: analysis.thumbnails || null,
         onscreen_titles: analysis.onscreen_titles || null,
         description_intro: analysis.description_intro || "",
+        seo_keyword: analysis.seo_keyword || "",
         hashtags_30: analysis.hashtags_30 || [],
         hashtags_inline: analysis.hashtags_inline || null,
         defaultTag: channelInfo.defaultTag,

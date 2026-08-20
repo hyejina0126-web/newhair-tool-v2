@@ -13,11 +13,6 @@ const CHANNELS = {
     channelId: "UCB1_zmwX--s9ccT0dNNFe8g",
     excludePlaylistId: "PLL_unjBR_puuNrS56sx8pqRyqJaQUVI91", // 외부채널 출연
     defaultTag: "ㅣ뉴헤어ㅣ모발건강"
-  },
-  "모벤저스": {
-    channelId: "UC5vc8SwXmxfJua4sjrx85Fw",
-    excludePlaylistId: null,
-    defaultTag: "ㅣ모벤져스"
   }
 };
 
@@ -42,16 +37,18 @@ function stripTags(html) {
 async function claudeAnalyze(apiKey, channel, contentType, script) {
   const isLong = contentType === "롱폼";
   let schemaFields = `- "typos": [{"before":"오타/오류 표현","after":"수정 표현","note":"이유(짧게)"}] (최대 8개, 없으면 빈 배열)
-- "titles": ["제목1","제목2","제목3","제목4","제목5"] (5개, 채널 태그 붙이지 말고 순수 제목만)
+- "titles": ["제목1","제목2","제목3"] (3개, 채널 태그 붙이지 말고 순수 제목만)
 - "description_intro": "설명글 도입부 2~4문장. 정중한 설명체(-습니다), 어그로성 표현 금지, 영상 핵심 내용을 정보 전달 톤으로 요약"
-- "search_keywords": ["키워드1","키워드2","키워드3"] (관련 영상/블로그를 검색할 핵심 키워드 2~3개, 명사 위주 짧은 구)`;
+- "search_keywords": ["키워드1","키워드2","키워드3"] (관련 영상/블로그를 검색할 핵심 키워드 2~3개, 명사 위주 짧은 구)
+- "hashtags_30": ["#해시태그1","#해시태그2", ... ] (탈모/모발이식 관련 해시태그 정확히 30개, "#"을 붙여서, 채널·영상 내용과 관련된 것 위주)`;
 
   if (isLong) {
     schemaFields += `
 - "thumbnails": [{"category":"모발이식 정보|탈모치료 정보|탈모 팩트체크 중 하나","headline":"썸네일 메인 카피(굵고 짧게, 10자 내외)","sub":"보조 문구(선택, 없으면 빈 문자열)"}] (3개)`;
   } else {
     schemaFields += `
-- "onscreen_titles": ["영상 내 삽입할 제목 텍스트 후보1","후보2","후보3","후보4"] (짧고 임팩트 있게, 4개)`;
+- "onscreen_titles": ["줄1\\n줄2", ...] (영상 내 삽입할 두 줄짜리 후크 문구 3~5개. 각 줄은 8~12자 내외로 짧고 임팩트 있게. 예: "수술 날짜부터 잡으면\\n일단 의심하세요")
+- "hashtags_inline": ["#해시태그1", ...] (설명글 끝에 붙일 대표 해시태그 5~10개, hashtags_30과 겹쳐도 됨)`;
   }
 
   const system = `당신은 탈모 전문 유튜브 채널의 영상 제작 보조 도구입니다.
@@ -69,7 +66,7 @@ ${schemaFields}
     headers: { "Content-Type": "application/json", "x-api-key": apiKey, "anthropic-version": "2023-06-01" },
     body: JSON.stringify({
       model: "claude-sonnet-4-6",
-      max_tokens: 2000,
+      max_tokens: 2500,
       system,
       messages: [{ role: "user", content: `[대본/스크립트]\n${script}` }]
     })
@@ -211,6 +208,8 @@ exports.handler = async (event) => {
         thumbnails: analysis.thumbnails || null,
         onscreen_titles: analysis.onscreen_titles || null,
         description_intro: analysis.description_intro || "",
+        hashtags_30: analysis.hashtags_30 || [],
+        hashtags_inline: analysis.hashtags_inline || null,
         defaultTag: channelInfo.defaultTag,
         video,
         blog,
